@@ -395,115 +395,124 @@ class _CollectionTableState extends State<CollectionTable> {
   }
 
   void _showAddColumnDialog() {
-    final eventDetailBloc = context.read<EventDetailBloc>(); // Get bloc from parent context
+    final eventDetailBloc =
+        context.read<EventDetailBloc>(); // Get bloc from parent context
     showDialog(
       context: context,
-      builder: (dialogContext) => BlocProvider.value(
-        value: eventDetailBloc, // Pass the pre-obtained bloc
-        child: const AddColumnDialog(),
-      ),
+      builder:
+          (dialogContext) => BlocProvider.value(
+            value: eventDetailBloc, // Pass the pre-obtained bloc
+            child: const AddColumnDialog(),
+          ),
     );
   }
 
   void _showRenameColumnDialog(EventColumn column) {
     final controller = TextEditingController(text: column.label);
-    final eventDetailBloc = context.read<EventDetailBloc>(); // Get bloc from parent context
+    final eventDetailBloc =
+        context.read<EventDetailBloc>(); // Get bloc from parent context
 
     showDialog(
       context: context,
-      builder: (dialogContext) => BlocProvider.value(
-        value: eventDetailBloc, // Pass the pre-obtained bloc
-        child: AlertDialog(
-          title: const Text('Rename Column'),
-          content: TextField(
-            controller: controller,
-            decoration: const InputDecoration(
-              labelText: 'Column Name',
-              border: OutlineInputBorder(),
+      builder:
+          (dialogContext) => BlocProvider.value(
+            value: eventDetailBloc, // Pass the pre-obtained bloc
+            child: AlertDialog(
+              title: const Text('Rename Column'),
+              content: TextField(
+                controller: controller,
+                decoration: const InputDecoration(
+                  labelText: 'Column Name',
+                  border: OutlineInputBorder(),
+                ),
+                autofocus: true,
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    final newLabel = controller.text.trim();
+                    if (newLabel.isNotEmpty && newLabel != column.label) {
+                      eventDetailBloc.add(
+                        UpdateColumn(column.copyWith(label: newLabel)),
+                      );
+                    }
+                    Navigator.of(dialogContext).pop();
+                  },
+                  child: const Text('Rename'),
+                ),
+              ],
             ),
-            autofocus: true,
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                final newLabel = controller.text.trim();
-                if (newLabel.isNotEmpty && newLabel != column.label) {
-                  eventDetailBloc.add(
-                    UpdateColumn(column.copyWith(label: newLabel)),
-                  );
-                }
-                Navigator.of(dialogContext).pop();
-              },
-              child: const Text('Rename'),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
   void _showDeleteColumnConfirmation(EventColumn column) {
-    final eventDetailBloc = context.read<EventDetailBloc>(); // Get bloc from parent context
+    final eventDetailBloc =
+        context.read<EventDetailBloc>(); // Get bloc from parent context
 
     showDialog(
       context: context,
-      builder: (dialogContext) => BlocProvider.value(
-        value: eventDetailBloc, // Pass the pre-obtained bloc
-        child: AlertDialog(
-          title: const Text('Delete Column'),
-          content: const Text(AppConstants.deleteColumnConfirmation),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Cancel'),
+      builder:
+          (dialogContext) => BlocProvider.value(
+            value: eventDetailBloc, // Pass the pre-obtained bloc
+            child: AlertDialog(
+              title: const Text('Delete Column'),
+              content: const Text(AppConstants.deleteColumnConfirmation),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    eventDetailBloc.add(DeleteColumn(column.id));
+                    Navigator.of(dialogContext).pop();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('Delete'),
+                ),
+              ],
             ),
-            ElevatedButton(
-              onPressed: () {
-                eventDetailBloc.add(
-                  DeleteColumn(column.id),
-                );
-                Navigator.of(dialogContext).pop();
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('Delete'),
-            ),
-          ],
-        ),
-      ),
+          ),
     );
   }
 
   void _showDeleteRowConfirmation(EventRow row) {
+    final eventDetailBloc =
+        context.read<EventDetailBloc>(); // Get bloc from parent context
     showDialog(
       context: context,
       builder:
-          (context) => AlertDialog(
-            title: const Text('Delete Row'),
-            content: const Text(AppConstants.deleteRowConfirmation),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Cancel'),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  context.read<EventDetailBloc>().add(DeleteRow(row.id));
-                  Navigator.of(context).pop();
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  foregroundColor: Colors.white,
+          (dialogContext) => BlocProvider.value(
+            value: eventDetailBloc,
+            child: AlertDialog(
+              title: const Text('Delete Row'),
+              content: const Text(AppConstants.deleteRowConfirmation),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: const Text('Cancel'),
                 ),
-                child: const Text('Delete'),
-              ),
-            ],
+                ElevatedButton(
+                  onPressed: () {
+                    eventDetailBloc.add(DeleteRow(row.id));
+                    Navigator.of(dialogContext).pop();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('Delete'),
+                ),
+              ],
+            ),
           ),
     );
   }

@@ -31,10 +31,7 @@ class _AddColumnDialogState extends State<AddColumnDialog> {
           Navigator.of(context).pop();
         } else if (state is EventDetailError) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.message),
-              backgroundColor: Colors.red,
-            ),
+            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
           );
         }
       },
@@ -68,19 +65,16 @@ class _AddColumnDialogState extends State<AddColumnDialog> {
                   },
                   autofocus: true,
                 ),
-                
+
                 const SizedBox(height: AppConstants.padding),
-                
+
                 // Column type selection
                 const Text(
                   'Column Type:',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w500,
-                    fontSize: 16,
-                  ),
+                  style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
                 ),
                 const SizedBox(height: AppConstants.smallPadding),
-                
+
                 // Text type
                 RadioListTile<ColumnType>(
                   title: const Text('Text'),
@@ -93,7 +87,7 @@ class _AddColumnDialogState extends State<AddColumnDialog> {
                     });
                   },
                 ),
-                
+
                 // Number type
                 RadioListTile<ColumnType>(
                   title: const Text('Number'),
@@ -106,7 +100,7 @@ class _AddColumnDialogState extends State<AddColumnDialog> {
                     });
                   },
                 ),
-                
+
                 // Boolean type
                 RadioListTile<ColumnType>(
                   title: const Text('Checkbox'),
@@ -119,16 +113,20 @@ class _AddColumnDialogState extends State<AddColumnDialog> {
                     });
                   },
                 ),
-                
+
                 const SizedBox(height: AppConstants.padding),
-                
+
                 // Info note
                 Container(
                   padding: const EdgeInsets.all(AppConstants.smallPadding),
                   decoration: BoxDecoration(
                     color: Colors.blue.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(AppConstants.smallPadding),
-                    border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
+                    borderRadius: BorderRadius.circular(
+                      AppConstants.smallPadding,
+                    ),
+                    border: Border.all(
+                      color: Colors.blue.withValues(alpha: 0.3),
+                    ),
                   ),
                   child: Row(
                     children: [
@@ -162,16 +160,17 @@ class _AddColumnDialogState extends State<AddColumnDialog> {
           BlocBuilder<EventDetailBloc, EventDetailState>(
             builder: (context, state) {
               final isLoading = state is EventDetailSaving;
-              
+
               return ElevatedButton(
                 onPressed: isLoading ? null : _addColumn,
-                child: isLoading
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('Add Column'),
+                child:
+                    isLoading
+                        ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                        : const Text('Add Column'),
               );
             },
           ),

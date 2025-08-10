@@ -146,10 +146,13 @@ class EventDetailView extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Collection Table Title
-                  Text(
-                    'Collection Data',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
+                  Padding(
+                    padding: const EdgeInsets.only(left: 10.0),
+                    child: Text(
+                      'Collection Data',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                   const SizedBox(height: AppConstants.padding),
@@ -163,7 +166,7 @@ class EventDetailView extends StatelessWidget {
                     isLocked: state.isLocked,
                   ),
 
-                  const SizedBox(height: AppConstants.largePadding),
+                  Divider(),
 
                   // Totals Table
                   TotalsTable(totals: state.totals),

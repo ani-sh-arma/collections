@@ -7,34 +7,21 @@ import '../../../core/constants/app_constants.dart';
 class TotalsTable extends StatelessWidget {
   final EventTotals? totals;
 
-  const TotalsTable({
-    super.key,
-    this.totals,
-  });
+  const TotalsTable({super.key, this.totals});
 
   @override
   Widget build(BuildContext context) {
     final effectiveTotals = totals ?? EventTotals.empty('');
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Summary',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: AppConstants.padding),
         Card(
           elevation: 2,
           child: Padding(
             padding: const EdgeInsets.all(AppConstants.smallPadding),
             child: Table(
-              border: TableBorder.all(
-                color: Colors.grey.shade300,
-                width: 1,
-              ),
+              border: TableBorder.all(color: Colors.grey.shade300, width: 1),
               columnWidths: const {
                 0: FixedColumnWidth(60),
                 1: FlexColumnWidth(2),
@@ -43,9 +30,6 @@ class TotalsTable extends StatelessWidget {
               children: [
                 // Header row
                 TableRow(
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                  ),
                   children: [
                     _buildHeaderCell('No.'),
                     _buildHeaderCell('Source'),
@@ -70,9 +54,6 @@ class TotalsTable extends StatelessWidget {
                 ),
                 // Total row
                 TableRow(
-                  decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
-                  ),
                   children: [
                     _buildDataCell('3', isBold: true),
                     _buildDataCell(AppConstants.grandTotalLabel, isBold: true),
@@ -84,7 +65,9 @@ class TotalsTable extends StatelessWidget {
           ),
         ),
         const SizedBox(height: AppConstants.smallPadding),
+
         _buildLastUpdated(effectiveTotals),
+        const SizedBox(height: 50),
       ],
     );
   }
@@ -94,10 +77,7 @@ class TotalsTable extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       child: Text(
         text,
-        style: const TextStyle(
-          fontWeight: FontWeight.bold,
-          fontSize: 14,
-        ),
+        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
         textAlign: TextAlign.center,
       ),
     );
@@ -118,10 +98,7 @@ class TotalsTable extends StatelessWidget {
   }
 
   Widget _buildAmountCell(double amount, {bool isBold = false}) {
-    final formatter = NumberFormat.currency(
-      symbol: '₹',
-      decimalDigits: 2,
-    );
+    final formatter = NumberFormat.currency(symbol: '₹', decimalDigits: 2);
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -145,11 +122,7 @@ class TotalsTable extends StatelessWidget {
 
     return Row(
       children: [
-        Icon(
-          Icons.update,
-          size: 14,
-          color: Colors.grey.shade600,
-        ),
+        Icon(Icons.update, size: 14, color: Colors.grey.shade600),
         const SizedBox(width: 4),
         Text(
           'Last updated: ${DateFormat('MMM dd, HH:mm').format(totals.updatedAt)}',

@@ -16,9 +16,9 @@ class EventDetailBloc extends Bloc<EventDetailEvent, EventDetailState> {
   String? _currentEventId;
 
   EventDetailBloc({required EventRepository repository})
-      : _repository = repository,
-        _debouncer = Debouncer(delay: AppConstants.autosaveDelay),
-        super(const EventDetailInitial()) {
+    : _repository = repository,
+      _debouncer = Debouncer(delay: AppConstants.autosaveDelay),
+      super(const EventDetailInitial()) {
     on<LoadEventDetail>(_onLoadEventDetail);
     on<UpdateEventInfo>(_onUpdateEventInfo);
     on<ToggleEventLock>(_onToggleEventLock);
@@ -52,7 +52,10 @@ class EventDetailBloc extends Bloc<EventDetailEvent, EventDetailState> {
     return super.close();
   }
 
-  Future<void> _onLoadEventDetail(LoadEventDetail event, Emitter<EventDetailState> emit) async {
+  Future<void> _onLoadEventDetail(
+    LoadEventDetail event,
+    Emitter<EventDetailState> emit,
+  ) async {
     try {
       emit(const EventDetailLoading());
       _currentEventId = event.eventId;
@@ -69,19 +72,24 @@ class EventDetailBloc extends Bloc<EventDetailEvent, EventDetailState> {
       final cells = await _repository.getEventCells(event.eventId);
       final totals = await _repository.getEventTotals(event.eventId);
 
-      emit(EventDetailLoaded(
-        event: eventData,
-        columns: columns,
-        rows: rows,
-        cells: cells,
-        totals: totals,
-      ));
+      emit(
+        EventDetailLoaded(
+          event: eventData,
+          columns: columns,
+          rows: rows,
+          cells: cells,
+          totals: totals,
+        ),
+      );
     } catch (e) {
       emit(EventDetailError('Failed to load event details: ${e.toString()}'));
     }
   }
 
-  Future<void> _onUpdateEventInfo(UpdateEventInfo event, Emitter<EventDetailState> emit) async {
+  Future<void> _onUpdateEventInfo(
+    UpdateEventInfo event,
+    Emitter<EventDetailState> emit,
+  ) async {
     final currentState = state;
     if (currentState is! EventDetailLoaded) return;
 
@@ -97,7 +105,10 @@ class EventDetailBloc extends Bloc<EventDetailEvent, EventDetailState> {
     }
   }
 
-  Future<void> _onToggleEventLock(ToggleEventLock event, Emitter<EventDetailState> emit) async {
+  Future<void> _onToggleEventLock(
+    ToggleEventLock event,
+    Emitter<EventDetailState> emit,
+  ) async {
     final currentState = state;
     if (currentState is! EventDetailLoaded) return;
 
@@ -116,7 +127,10 @@ class EventDetailBloc extends Bloc<EventDetailEvent, EventDetailState> {
     }
   }
 
-  Future<void> _onAddColumn(AddColumn event, Emitter<EventDetailState> emit) async {
+  Future<void> _onAddColumn(
+    AddColumn event,
+    Emitter<EventDetailState> emit,
+  ) async {
     final currentState = state;
     if (currentState is! EventDetailLoaded || _currentEventId == null) return;
 
@@ -124,9 +138,11 @@ class EventDetailBloc extends Bloc<EventDetailEvent, EventDetailState> {
       emit(const EventDetailSaving('Adding column'));
 
       // Find the position for the new column (before the add column button)
-      final addColumnIndex = currentState.columns
-          .indexWhere((col) => col.key == AppConstants.addColumnKey);
-      final newPosition = addColumnIndex >= 0 ? addColumnIndex : currentState.columns.length;
+      final addColumnIndex = currentState.columns.indexWhere(
+        (col) => col.key == AppConstants.addColumnKey,
+      );
+      final newPosition =
+          addColumnIndex >= 0 ? addColumnIndex : currentState.columns.length;
 
       // Create new column
       final newColumn = EventColumn(
@@ -155,7 +171,10 @@ class EventDetailBloc extends Bloc<EventDetailEvent, EventDetailState> {
     }
   }
 
-  Future<void> _onUpdateColumn(UpdateColumn event, Emitter<EventDetailState> emit) async {
+  Future<void> _onUpdateColumn(
+    UpdateColumn event,
+    Emitter<EventDetailState> emit,
+  ) async {
     final currentState = state;
     if (currentState is! EventDetailLoaded) return;
 
@@ -163,17 +182,22 @@ class EventDetailBloc extends Bloc<EventDetailEvent, EventDetailState> {
       await _repository.updateColumn(event.column);
 
       // Update the column in current state
-      final updatedColumns = currentState.columns.map((col) {
-        return col.id == event.column.id ? event.column : col;
-      }).toList();
+      final updatedColumns =
+          currentState.columns.map((col) {
+            return col.id == event.column.id ? event.column : col;
+          }).toList();
 
       emit(currentState.copyWith(columns: updatedColumns));
+      add(const RefreshEventDetail());
     } catch (e) {
       emit(EventDetailError('Failed to update column: ${e.toString()}'));
     }
   }
 
-  Future<void> _onDeleteColumn(DeleteColumn event, Emitter<EventDetailState> emit) async {
+  Future<void> _onDeleteColumn(
+    DeleteColumn event,
+    Emitter<EventDetailState> emit,
+  ) async {
     final currentState = state;
     if (currentState is! EventDetailLoaded) return;
 
@@ -189,7 +213,10 @@ class EventDetailBloc extends Bloc<EventDetailEvent, EventDetailState> {
     }
   }
 
-  Future<void> _onReorderColumns(ReorderColumns event, Emitter<EventDetailState> emit) async {
+  Future<void> _onReorderColumns(
+    ReorderColumns event,
+    Emitter<EventDetailState> emit,
+  ) async {
     final currentState = state;
     if (currentState is! EventDetailLoaded || _currentEventId == null) return;
 
@@ -211,9 +238,12 @@ class EventDetailBloc extends Bloc<EventDetailEvent, EventDetailState> {
       emit(const EventDetailSaving('Adding row'));
 
       // Find the next position
-      final maxPosition = currentState.rows.isEmpty
-          ? 0
-          : currentState.rows.map((r) => r.position).reduce((a, b) => a > b ? a : b);
+      final maxPosition =
+          currentState.rows.isEmpty
+              ? 0
+              : currentState.rows
+                  .map((r) => r.position)
+                  .reduce((a, b) => a > b ? a : b);
 
       final newRow = EventRow(
         eventId: _currentEventId!,
@@ -229,7 +259,10 @@ class EventDetailBloc extends Bloc<EventDetailEvent, EventDetailState> {
     }
   }
 
-  Future<void> _onInsertRowAtPosition(InsertRowAtPosition event, Emitter<EventDetailState> emit) async {
+  Future<void> _onInsertRowAtPosition(
+    InsertRowAtPosition event,
+    Emitter<EventDetailState> emit,
+  ) async {
     final currentState = state;
     if (currentState is! EventDetailLoaded || _currentEventId == null) return;
 
@@ -250,7 +283,10 @@ class EventDetailBloc extends Bloc<EventDetailEvent, EventDetailState> {
     }
   }
 
-  Future<void> _onDeleteRow(DeleteRow event, Emitter<EventDetailState> emit) async {
+  Future<void> _onDeleteRow(
+    DeleteRow event,
+    Emitter<EventDetailState> emit,
+  ) async {
     final currentState = state;
     if (currentState is! EventDetailLoaded) return;
 
@@ -267,7 +303,10 @@ class EventDetailBloc extends Bloc<EventDetailEvent, EventDetailState> {
     }
   }
 
-  Future<void> _onReorderRows(ReorderRows event, Emitter<EventDetailState> emit) async {
+  Future<void> _onReorderRows(
+    ReorderRows event,
+    Emitter<EventDetailState> emit,
+  ) async {
     final currentState = state;
     if (currentState is! EventDetailLoaded || _currentEventId == null) return;
 
@@ -281,13 +320,19 @@ class EventDetailBloc extends Bloc<EventDetailEvent, EventDetailState> {
     }
   }
 
-  Future<void> _onUpdateCell(UpdateCell event, Emitter<EventDetailState> emit) async {
+  Future<void> _onUpdateCell(
+    UpdateCell event,
+    Emitter<EventDetailState> emit,
+  ) async {
     final currentState = state;
     if (currentState is! EventDetailLoaded) return;
 
     try {
       // Check if cell exists
-      final existingCell = await _repository.getCell(event.cell.rowId, event.cell.columnId);
+      final existingCell = await _repository.getCell(
+        event.cell.rowId,
+        event.cell.columnId,
+      );
 
       if (existingCell != null) {
         await _repository.updateCell(event.cell);
@@ -296,16 +341,23 @@ class EventDetailBloc extends Bloc<EventDetailEvent, EventDetailState> {
       }
 
       // Update the cell in current state
-      final updatedCells = currentState.cells.where((cell) =>
-          !(cell.rowId == event.cell.rowId && cell.columnId == event.cell.columnId)
-      ).toList();
+      final updatedCells =
+          currentState.cells
+              .where(
+                (cell) =>
+                    !(cell.rowId == event.cell.rowId &&
+                        cell.columnId == event.cell.columnId),
+              )
+              .toList();
       updatedCells.add(event.cell);
 
       emit(currentState.copyWith(cells: updatedCells));
 
       // Recalculate totals if this affects amount or online columns
       final column = currentState.getColumnById(event.cell.columnId);
-      if (column != null && (column.key == AppConstants.amountColumnKey || column.key == AppConstants.onlineColumnKey)) {
+      if (column != null &&
+          (column.key == AppConstants.amountColumnKey ||
+              column.key == AppConstants.onlineColumnKey)) {
         add(const RecalculateTotals());
       }
     } catch (e) {
@@ -313,7 +365,10 @@ class EventDetailBloc extends Bloc<EventDetailEvent, EventDetailState> {
     }
   }
 
-  Future<void> _onUpdateCellText(UpdateCellText event, Emitter<EventDetailState> emit) async {
+  Future<void> _onUpdateCellText(
+    UpdateCellText event,
+    Emitter<EventDetailState> emit,
+  ) async {
     final cell = Cell(
       rowId: event.rowId,
       columnId: event.columnId,
@@ -322,7 +377,10 @@ class EventDetailBloc extends Bloc<EventDetailEvent, EventDetailState> {
     add(UpdateCell(cell));
   }
 
-  Future<void> _onUpdateCellNumber(UpdateCellNumber event, Emitter<EventDetailState> emit) async {
+  Future<void> _onUpdateCellNumber(
+    UpdateCellNumber event,
+    Emitter<EventDetailState> emit,
+  ) async {
     final cell = Cell(
       rowId: event.rowId,
       columnId: event.columnId,
@@ -331,7 +389,10 @@ class EventDetailBloc extends Bloc<EventDetailEvent, EventDetailState> {
     add(UpdateCell(cell));
   }
 
-  Future<void> _onUpdateCellBool(UpdateCellBool event, Emitter<EventDetailState> emit) async {
+  Future<void> _onUpdateCellBool(
+    UpdateCellBool event,
+    Emitter<EventDetailState> emit,
+  ) async {
     final cell = Cell(
       rowId: event.rowId,
       columnId: event.columnId,
@@ -340,7 +401,10 @@ class EventDetailBloc extends Bloc<EventDetailEvent, EventDetailState> {
     add(UpdateCell(cell));
   }
 
-  Future<void> _onRecalculateTotals(RecalculateTotals event, Emitter<EventDetailState> emit) async {
+  Future<void> _onRecalculateTotals(
+    RecalculateTotals event,
+    Emitter<EventDetailState> emit,
+  ) async {
     final currentState = state;
     if (currentState is! EventDetailLoaded || _currentEventId == null) return;
 
@@ -353,7 +417,10 @@ class EventDetailBloc extends Bloc<EventDetailEvent, EventDetailState> {
     }
   }
 
-  Future<void> _onRefreshEventDetail(RefreshEventDetail event, Emitter<EventDetailState> emit) async {
+  Future<void> _onRefreshEventDetail(
+    RefreshEventDetail event,
+    Emitter<EventDetailState> emit,
+  ) async {
     if (_currentEventId != null) {
       add(LoadEventDetail(_currentEventId!));
     }
