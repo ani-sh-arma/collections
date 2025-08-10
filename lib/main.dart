@@ -31,9 +31,9 @@ class MyApp extends StatelessWidget {
 
     return MaterialApp(
       title: 'Create Flutter App',
+      debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
-
       home: const HomePage(),
     );
   }

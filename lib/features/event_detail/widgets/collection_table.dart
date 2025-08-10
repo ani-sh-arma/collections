@@ -63,7 +63,8 @@ class _CollectionTableState extends State<CollectionTable> {
 
     for (final row in widget.rows) {
       for (final column in widget.columns) {
-        if (column.type == ColumnType.text || column.type == ColumnType.number) {
+        if (column.type == ColumnType.text ||
+            column.type == ColumnType.number) {
           final key = '${row.id}_${column.id}';
           final cell = _getCell(row.id, column.id);
 
@@ -80,7 +81,8 @@ class _CollectionTableState extends State<CollectionTable> {
   void _updateControllers() {
     for (final row in widget.rows) {
       for (final column in widget.columns) {
-        if (column.type == ColumnType.text || column.type == ColumnType.number) {
+        if (column.type == ColumnType.text ||
+            column.type == ColumnType.number) {
           final key = '${row.id}_${column.id}';
           final cell = _getCell(row.id, column.id);
 
@@ -124,10 +126,7 @@ class _CollectionTableState extends State<CollectionTable> {
             headingRowHeight: 48,
             dataRowMinHeight: 56,
             dataRowMaxHeight: 56,
-            border: TableBorder.all(
-              color: Colors.grey.shade300,
-              width: 1,
-            ),
+            border: TableBorder.all(color: Colors.grey.shade300, width: 1),
             columns: _buildColumns(),
             rows: _buildRows(),
           ),
@@ -143,17 +142,13 @@ class _CollectionTableState extends State<CollectionTable> {
         padding: const EdgeInsets.all(AppConstants.largePadding),
         child: Column(
           children: [
-            Icon(
-              Icons.table_chart,
-              size: 48,
-              color: Colors.grey.shade400,
-            ),
+            Icon(Icons.table_chart, size: 48, color: Colors.grey.shade400),
             const SizedBox(height: AppConstants.padding),
             Text(
               AppConstants.emptyTableMessage,
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: Colors.grey.shade600,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyLarge?.copyWith(color: Colors.grey.shade600),
               textAlign: TextAlign.center,
             ),
           ],
@@ -164,11 +159,7 @@ class _CollectionTableState extends State<CollectionTable> {
 
   List<DataColumn> _buildColumns() {
     return widget.columns.map((column) {
-      return DataColumn(
-        label: Expanded(
-          child: _buildColumnHeader(column),
-        ),
-      );
+      return DataColumn(label: Expanded(child: _buildColumnHeader(column)));
     }).toList();
   }
 
@@ -183,10 +174,7 @@ class _CollectionTableState extends State<CollectionTable> {
         Expanded(
           child: Text(
             column.label,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 14,
-            ),
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
             textAlign: TextAlign.center,
           ),
         ),
@@ -194,16 +182,11 @@ class _CollectionTableState extends State<CollectionTable> {
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert, size: 16),
             onSelected: (value) => _handleColumnAction(column, value),
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'rename',
-                child: Text('Rename'),
-              ),
-              const PopupMenuItem(
-                value: 'delete',
-                child: Text('Delete'),
-              ),
-            ],
+            itemBuilder:
+                (context) => [
+                  const PopupMenuItem(value: 'rename', child: Text('Rename')),
+                  const PopupMenuItem(value: 'delete', child: Text('Delete')),
+                ],
           ),
       ],
     );
@@ -211,11 +194,7 @@ class _CollectionTableState extends State<CollectionTable> {
 
   Widget _buildAddColumnButton() {
     if (widget.isLocked) {
-      return const Icon(
-        Icons.add,
-        color: Colors.grey,
-        size: 20,
-      );
+      return const Icon(Icons.add, color: Colors.grey, size: 20);
     }
 
     return IconButton(
@@ -239,9 +218,10 @@ class _CollectionTableState extends State<CollectionTable> {
 
   DataRow _buildDataRow(EventRow row, int index) {
     return DataRow(
-      cells: widget.columns.map((column) {
-        return DataCell(_buildCell(row, column, index));
-      }).toList(),
+      cells:
+          widget.columns.map((column) {
+            return DataCell(_buildCell(row, column, index));
+          }).toList(),
     );
   }
 
@@ -267,10 +247,7 @@ class _CollectionTableState extends State<CollectionTable> {
       alignment: Alignment.center,
       child: Text(
         '${index + 1}',
-        style: const TextStyle(
-          fontWeight: FontWeight.w500,
-          color: Colors.grey,
-        ),
+        style: const TextStyle(fontWeight: FontWeight.w500, color: Colors.grey),
       ),
     );
   }
@@ -297,11 +274,7 @@ class _CollectionTableState extends State<CollectionTable> {
       onChanged: (value) {
         _debouncers[key]?.call(() {
           context.read<EventDetailBloc>().add(
-            UpdateCellText(
-              rowId: row.id,
-              columnId: column.id,
-              value: value,
-            ),
+            UpdateCellText(rowId: row.id, columnId: column.id, value: value),
           );
         });
       },
@@ -361,11 +334,7 @@ class _CollectionTableState extends State<CollectionTable> {
       onEditingComplete: () {
         final numValue = double.tryParse(controller.text) ?? 0.0;
         context.read<EventDetailBloc>().add(
-          UpdateCellNumber(
-            rowId: row.id,
-            columnId: column.id,
-            value: numValue,
-          ),
+          UpdateCellNumber(rowId: row.id, columnId: column.id, value: numValue),
         );
       },
     );
@@ -376,15 +345,18 @@ class _CollectionTableState extends State<CollectionTable> {
 
     return Checkbox(
       value: isChecked,
-      onChanged: widget.isLocked ? null : (value) {
-        context.read<EventDetailBloc>().add(
-          UpdateCellBool(
-            rowId: row.id,
-            columnId: column.id,
-            value: value ?? false,
-          ),
-        );
-      },
+      onChanged:
+          widget.isLocked
+              ? null
+              : (value) {
+                context.read<EventDetailBloc>().add(
+                  UpdateCellBool(
+                    rowId: row.id,
+                    columnId: column.id,
+                    value: value ?? false,
+                  ),
+                );
+              },
     );
   }
 
@@ -396,12 +368,10 @@ class _CollectionTableState extends State<CollectionTable> {
     return PopupMenuButton<String>(
       icon: const Icon(Icons.more_horiz, size: 16),
       onSelected: (value) => _handleRowAction(row, value),
-      itemBuilder: (context) => [
-        const PopupMenuItem(
-          value: 'delete',
-          child: Text('Delete Row'),
-        ),
-      ],
+      itemBuilder:
+          (context) => [
+            const PopupMenuItem(value: 'delete', child: Text('Delete Row')),
+          ],
     );
   }
 
@@ -425,10 +395,11 @@ class _CollectionTableState extends State<CollectionTable> {
   }
 
   void _showAddColumnDialog() {
+    final eventDetailBloc = context.read<EventDetailBloc>(); // Get bloc from parent context
     showDialog(
       context: context,
       builder: (dialogContext) => BlocProvider.value(
-        value: context.read<EventDetailBloc>(),
+        value: eventDetailBloc, // Pass the pre-obtained bloc
         child: const AddColumnDialog(),
       ),
     );
@@ -436,64 +407,75 @@ class _CollectionTableState extends State<CollectionTable> {
 
   void _showRenameColumnDialog(EventColumn column) {
     final controller = TextEditingController(text: column.label);
+    final eventDetailBloc = context.read<EventDetailBloc>(); // Get bloc from parent context
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Rename Column'),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(
-            labelText: 'Column Name',
-            border: OutlineInputBorder(),
+      builder: (dialogContext) => BlocProvider.value(
+        value: eventDetailBloc, // Pass the pre-obtained bloc
+        child: AlertDialog(
+          title: const Text('Rename Column'),
+          content: TextField(
+            controller: controller,
+            decoration: const InputDecoration(
+              labelText: 'Column Name',
+              border: OutlineInputBorder(),
+            ),
+            autofocus: true,
           ),
-          autofocus: true,
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final newLabel = controller.text.trim();
+                if (newLabel.isNotEmpty && newLabel != column.label) {
+                  eventDetailBloc.add(
+                    UpdateColumn(column.copyWith(label: newLabel)),
+                  );
+                }
+                Navigator.of(dialogContext).pop();
+              },
+              child: const Text('Rename'),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final newLabel = controller.text.trim();
-              if (newLabel.isNotEmpty && newLabel != column.label) {
-                context.read<EventDetailBloc>().add(
-                  UpdateColumn(column.copyWith(label: newLabel)),
-                );
-              }
-              Navigator.of(context).pop();
-            },
-            child: const Text('Rename'),
-          ),
-        ],
       ),
     );
   }
 
   void _showDeleteColumnConfirmation(EventColumn column) {
+    final eventDetailBloc = context.read<EventDetailBloc>(); // Get bloc from parent context
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Column'),
-        content: const Text(AppConstants.deleteColumnConfirmation),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              context.read<EventDetailBloc>().add(DeleteColumn(column.id));
-              Navigator.of(context).pop();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
+      builder: (dialogContext) => BlocProvider.value(
+        value: eventDetailBloc, // Pass the pre-obtained bloc
+        child: AlertDialog(
+          title: const Text('Delete Column'),
+          content: const Text(AppConstants.deleteColumnConfirmation),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cancel'),
             ),
-            child: const Text('Delete'),
-          ),
-        ],
+            ElevatedButton(
+              onPressed: () {
+                eventDetailBloc.add(
+                  DeleteColumn(column.id),
+                );
+                Navigator.of(dialogContext).pop();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Delete'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -501,27 +483,28 @@ class _CollectionTableState extends State<CollectionTable> {
   void _showDeleteRowConfirmation(EventRow row) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Row'),
-        content: const Text(AppConstants.deleteRowConfirmation),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Delete Row'),
+            content: const Text(AppConstants.deleteRowConfirmation),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  context.read<EventDetailBloc>().add(DeleteRow(row.id));
+                  Navigator.of(context).pop();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Delete'),
+              ),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () {
-              context.read<EventDetailBloc>().add(DeleteRow(row.id));
-              Navigator.of(context).pop();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
     );
   }
 }
