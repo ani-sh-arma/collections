@@ -20,11 +20,11 @@ class FileUtils {
   static Future<Directory> getBackupsDirectory() async {
     final appDir = await getAppDocumentsDirectory();
     final backupsDir = Directory('${appDir.path}/$_backupFolderName');
-    
+
     if (!await backupsDir.exists()) {
       await backupsDir.create(recursive: true);
     }
-    
+
     return backupsDir;
   }
 
@@ -36,21 +36,26 @@ class FileUtils {
   }
 
   /// Exports data to a JSON file and shares it
-  static Future<void> exportAndShare(ExportData exportData, {String? filename}) async {
+  static Future<void> exportAndShare(
+    ExportData exportData, {
+    String? filename,
+  }) async {
     try {
       final jsonString = jsonEncode(exportData.toJson());
       final fileName = filename ?? generateExportFilename();
-      
+
       // Create temporary file
       final tempDir = await getTemporaryDirectory();
       final file = File('${tempDir.path}/$fileName');
       await file.writeAsString(jsonString);
-      
+
       // Share the file
-      await Share.shareXFiles(
-        [XFile(file.path)],
-        text: 'Collections Export - ${exportData.events.length} event(s)',
-        subject: 'Collections Export',
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(file.path)],
+          text: 'Collections Export - ${exportData.events.length} event(s)',
+          subject: 'Collections Export',
+        ),
       );
     } catch (e) {
       throw Exception('Failed to export data: $e');
@@ -58,15 +63,18 @@ class FileUtils {
   }
 
   /// Creates a local backup of the export data
-  static Future<File> createBackup(ExportData exportData, {String? filename}) async {
+  static Future<File> createBackup(
+    ExportData exportData, {
+    String? filename,
+  }) async {
     try {
       final jsonString = jsonEncode(exportData.toJson());
       final fileName = filename ?? generateExportFilename(prefix: 'backup');
-      
+
       final backupsDir = await getBackupsDirectory();
       final file = File('${backupsDir.path}/$fileName');
       await file.writeAsString(jsonString);
-      
+
       return file;
     } catch (e) {
       throw Exception('Failed to create backup: $e');
@@ -86,10 +94,10 @@ class FileUtils {
         final file = File(result.files.single.path!);
         final jsonString = await file.readAsString();
         final jsonData = jsonDecode(jsonString) as Map<String, dynamic>;
-        
+
         return ExportData.fromJson(jsonData);
       }
-      
+
       return null;
     } catch (e) {
       throw Exception('Failed to import file: $e');
@@ -102,14 +110,14 @@ class FileUtils {
       final file = File(filePath);
       final jsonString = await file.readAsString();
       final jsonData = jsonDecode(jsonString) as Map<String, dynamic>;
-      
+
       // Check for required fields
-      if (!jsonData.containsKey('version') || 
-          !jsonData.containsKey('exportedAt') || 
+      if (!jsonData.containsKey('version') ||
+          !jsonData.containsKey('exportedAt') ||
           !jsonData.containsKey('events')) {
         return false;
       }
-      
+
       // Try to parse as ExportData
       ExportData.fromJson(jsonData);
       return true;
@@ -122,15 +130,18 @@ class FileUtils {
   static Future<List<File>> getBackupFiles() async {
     try {
       final backupsDir = await getBackupsDirectory();
-      final files = backupsDir
-          .listSync()
-          .whereType<File>()
-          .where((file) => file.path.endsWith(_exportFileExtension))
-          .toList();
-      
+      final files =
+          backupsDir
+              .listSync()
+              .whereType<File>()
+              .where((file) => file.path.endsWith(_exportFileExtension))
+              .toList();
+
       // Sort by modification date (newest first)
-      files.sort((a, b) => b.lastModifiedSync().compareTo(a.lastModifiedSync()));
-      
+      files.sort(
+        (a, b) => b.lastModifiedSync().compareTo(a.lastModifiedSync()),
+      );
+
       return files;
     } catch (e) {
       return [];
@@ -141,7 +152,7 @@ class FileUtils {
   static Future<void> cleanupOldBackups({int keepCount = 10}) async {
     try {
       final backupFiles = await getBackupFiles();
-      
+
       if (backupFiles.length > keepCount) {
         final filesToDelete = backupFiles.skip(keepCount);
         for (final file in filesToDelete) {
@@ -170,7 +181,7 @@ class FileUtils {
     final totalCells = exportData.events
         .map((e) => e.cells.length)
         .fold(0, (sum, count) => sum + count);
-    
+
     return {
       'version': exportData.version,
       'exportedAt': exportData.exportedAt,

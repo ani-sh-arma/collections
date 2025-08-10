@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:get_it/get_it.dart';
 
 import '../database/database.dart';
@@ -32,7 +34,7 @@ Future<void> setupServiceLocator() async {
       () => ImportExportCubit(repository: sl<EventRepository>()),
     );
   } catch (e) {
-    print('Error setting up service locator: $e');
+    log('Error setting up service locator: $e');
     rethrow;
   }
 }

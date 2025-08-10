@@ -23,7 +23,7 @@ class EventCard extends StatelessWidget {
       event.gradientColorA,
       event.gradientColorB,
     );
-    
+
     final textColor = GradientGenerator.getTextColorForGradient(
       event.gradientColorA,
       event.gradientColorB,
@@ -63,7 +63,7 @@ class EventCard extends StatelessWidget {
                     if (event.locked)
                       Icon(
                         Icons.lock,
-                        color: textColor.withOpacity(0.8),
+                        color: textColor.withAlpha(200),
                         size: 20,
                       ),
                   ],
@@ -72,7 +72,7 @@ class EventCard extends StatelessWidget {
                 Text(
                   DateFormat('MMM dd, yyyy').format(event.date),
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: textColor.withOpacity(0.9),
+                    color: textColor.withAlpha(225),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -81,7 +81,7 @@ class EventCard extends StatelessWidget {
                   Text(
                     event.description,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: textColor.withOpacity(0.8),
+                      color: textColor.withAlpha(200),
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -94,14 +94,14 @@ class EventCard extends StatelessWidget {
                     Text(
                       'Tap to view details',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: textColor.withOpacity(0.7),
+                        color: textColor.withAlpha(175),
                         fontStyle: FontStyle.italic,
                       ),
                     ),
                     Text(
                       'Hold for options',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: textColor.withOpacity(0.7),
+                        color: textColor.withAlpha(175),
                         fontStyle: FontStyle.italic,
                       ),
                     ),
@@ -226,7 +226,7 @@ class _EventActionMenu extends StatelessWidget {
 
   void _showRenameDialog(BuildContext context) {
     final controller = TextEditingController(text: event.title);
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(

@@ -24,10 +24,7 @@ class ImportDialog extends StatelessWidget {
           Navigator.of(context).pop();
         } else if (state is ImportExportError) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.message),
-              backgroundColor: Colors.red,
-            ),
+            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
           );
         }
       },
@@ -104,17 +101,15 @@ class ImportDialog extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(AppConstants.smallPadding),
                 decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(AppConstants.smallPadding),
-                  border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                  color: Colors.blue.withAlpha(25),
+                  borderRadius: BorderRadius.circular(
+                    AppConstants.smallPadding,
+                  ),
+                  border: Border.all(color: Colors.blue.withAlpha(50)),
                 ),
                 child: Row(
                   children: [
-                    Icon(
-                      Icons.info_outline,
-                      color: Colors.blue[700],
-                      size: 20,
-                    ),
+                    Icon(Icons.info_outline, color: Colors.blue[700], size: 20),
                     const SizedBox(width: AppConstants.smallPadding),
                     Expanded(
                       child: Text(
@@ -141,18 +136,22 @@ class ImportDialog extends StatelessWidget {
           BlocBuilder<ImportExportCubit, ImportExportState>(
             builder: (context, state) {
               final isImporting = state is ImportExportLoading;
-              
+
               return ElevatedButton(
-                onPressed: isImporting
-                    ? null
-                    : () => context.read<ImportExportCubit>().confirmImport(exportData),
-                child: isImporting
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('Import'),
+                onPressed:
+                    isImporting
+                        ? null
+                        : () => context.read<ImportExportCubit>().confirmImport(
+                          exportData,
+                        ),
+                child:
+                    isImporting
+                        ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                        : const Text('Import'),
               );
             },
           ),
@@ -166,8 +165,9 @@ class ImportDialog extends StatelessWidget {
       if (timestamp is DateTime) {
         return DateFormat('MMM dd, yyyy HH:mm').format(timestamp);
       } else if (timestamp is int) {
-        return DateFormat('MMM dd, yyyy HH:mm')
-            .format(DateTime.fromMillisecondsSinceEpoch(timestamp));
+        return DateFormat(
+          'MMM dd, yyyy HH:mm',
+        ).format(DateTime.fromMillisecondsSinceEpoch(timestamp));
       }
       return 'Unknown';
     } catch (e) {
@@ -180,10 +180,7 @@ class _InfoRow extends StatelessWidget {
   final String label;
   final String value;
 
-  const _InfoRow({
-    required this.label,
-    required this.value,
-  });
+  const _InfoRow({required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
@@ -196,16 +193,13 @@ class _InfoRow extends StatelessWidget {
             width: 100,
             child: Text(
               '$label:',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w500,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
             ),
           ),
           Expanded(
-            child: Text(
-              value,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
+            child: Text(value, style: Theme.of(context).textTheme.bodyMedium),
           ),
         ],
       ),

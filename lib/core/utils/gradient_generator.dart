@@ -52,6 +52,7 @@ class GradientGenerator {
 
   /// Converts a Color to hex string
   static String colorToHex(Color color) {
+    // ignore: deprecated_member_use
     return '#${color.value.toRadixString(16).padLeft(8, '0').substring(2)}';
   }
 
@@ -107,12 +108,12 @@ class GradientGenerator {
   static Color getTextColorForGradient(String colorA, String colorB) {
     final color1 = Color(int.parse(colorA.replaceFirst('#', '0xFF')));
     final color2 = Color(int.parse(colorB.replaceFirst('#', '0xFF')));
-    
+
     // Calculate average luminance
     final luminance1 = color1.computeLuminance();
     final luminance2 = color2.computeLuminance();
     final avgLuminance = (luminance1 + luminance2) / 2;
-    
+
     // Return white for dark gradients, black for light gradients
     return avgLuminance > 0.5 ? Colors.black : Colors.white;
   }

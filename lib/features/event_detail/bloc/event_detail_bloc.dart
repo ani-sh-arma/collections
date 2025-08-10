@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uuid/uuid.dart';
 
@@ -21,25 +22,25 @@ class EventDetailBloc extends Bloc<EventDetailEvent, EventDetailState> {
     on<LoadEventDetail>(_onLoadEventDetail);
     on<UpdateEventInfo>(_onUpdateEventInfo);
     on<ToggleEventLock>(_onToggleEventLock);
-    
+
     // Column operations
     on<AddColumn>(_onAddColumn);
     on<UpdateColumn>(_onUpdateColumn);
     on<DeleteColumn>(_onDeleteColumn);
     on<ReorderColumns>(_onReorderColumns);
-    
+
     // Row operations
     on<AddRow>(_onAddRow);
     on<InsertRowAtPosition>(_onInsertRowAtPosition);
     on<DeleteRow>(_onDeleteRow);
     on<ReorderRows>(_onReorderRows);
-    
+
     // Cell operations
     on<UpdateCell>(_onUpdateCell);
     on<UpdateCellText>(_onUpdateCellText);
     on<UpdateCellNumber>(_onUpdateCellNumber);
     on<UpdateCellBool>(_onUpdateCellBool);
-    
+
     // Totals operations
     on<RecalculateTotals>(_onRecalculateTotals);
     on<RefreshEventDetail>(_onRefreshEventDetail);
@@ -86,10 +87,10 @@ class EventDetailBloc extends Bloc<EventDetailEvent, EventDetailState> {
 
     try {
       emit(const EventDetailSaving('Updating event info'));
-      
+
       final updatedEvent = event.event.copyWith(updatedAt: DateTime.now());
       await _repository.updateEvent(updatedEvent);
-      
+
       emit(currentState.copyWith(event: updatedEvent));
     } catch (e) {
       emit(EventDetailError('Failed to update event info: ${e.toString()}'));
@@ -102,12 +103,12 @@ class EventDetailBloc extends Bloc<EventDetailEvent, EventDetailState> {
 
     try {
       emit(const EventDetailSaving('Toggling lock'));
-      
+
       final updatedEvent = currentState.event.copyWith(
         locked: !currentState.event.locked,
         updatedAt: DateTime.now(),
       );
-      
+
       await _repository.updateEvent(updatedEvent);
       emit(currentState.copyWith(event: updatedEvent));
     } catch (e) {
@@ -121,12 +122,12 @@ class EventDetailBloc extends Bloc<EventDetailEvent, EventDetailState> {
 
     try {
       emit(const EventDetailSaving('Adding column'));
-      
+
       // Find the position for the new column (before the add column button)
       final addColumnIndex = currentState.columns
           .indexWhere((col) => col.key == AppConstants.addColumnKey);
       final newPosition = addColumnIndex >= 0 ? addColumnIndex : currentState.columns.length;
-      
+
       // Create new column
       final newColumn = EventColumn(
         eventId: _currentEventId!,
@@ -136,9 +137,9 @@ class EventDetailBloc extends Bloc<EventDetailEvent, EventDetailState> {
         position: newPosition,
         fixed: false,
       );
-      
+
       await _repository.createColumn(newColumn);
-      
+
       // Shift add column to the right if it exists
       if (addColumnIndex >= 0) {
         final addColumn = currentState.columns[addColumnIndex];
@@ -146,7 +147,7 @@ class EventDetailBloc extends Bloc<EventDetailEvent, EventDetailState> {
           addColumn.copyWith(position: newPosition + 1),
         );
       }
-      
+
       // Reload data
       add(const RefreshEventDetail());
     } catch (e) {
@@ -160,12 +161,12 @@ class EventDetailBloc extends Bloc<EventDetailEvent, EventDetailState> {
 
     try {
       await _repository.updateColumn(event.column);
-      
+
       // Update the column in current state
       final updatedColumns = currentState.columns.map((col) {
         return col.id == event.column.id ? event.column : col;
       }).toList();
-      
+
       emit(currentState.copyWith(columns: updatedColumns));
     } catch (e) {
       emit(EventDetailError('Failed to update column: ${e.toString()}'));
@@ -178,9 +179,9 @@ class EventDetailBloc extends Bloc<EventDetailEvent, EventDetailState> {
 
     try {
       emit(const EventDetailSaving('Deleting column'));
-      
+
       await _repository.deleteColumn(event.columnId);
-      
+
       // Reload data to reflect changes
       add(const RefreshEventDetail());
     } catch (e) {
@@ -194,7 +195,7 @@ class EventDetailBloc extends Bloc<EventDetailEvent, EventDetailState> {
 
     try {
       await _repository.reorderColumns(_currentEventId!, event.columnIds);
-      
+
       // Reload data to reflect new order
       add(const RefreshEventDetail());
     } catch (e) {
@@ -208,19 +209,19 @@ class EventDetailBloc extends Bloc<EventDetailEvent, EventDetailState> {
 
     try {
       emit(const EventDetailSaving('Adding row'));
-      
+
       // Find the next position
-      final maxPosition = currentState.rows.isEmpty 
-          ? 0 
+      final maxPosition = currentState.rows.isEmpty
+          ? 0
           : currentState.rows.map((r) => r.position).reduce((a, b) => a > b ? a : b);
-      
+
       final newRow = EventRow(
         eventId: _currentEventId!,
         position: maxPosition + 1,
       );
-      
+
       await _repository.createRow(newRow);
-      
+
       // Reload data
       add(const RefreshEventDetail());
     } catch (e) {
@@ -234,14 +235,14 @@ class EventDetailBloc extends Bloc<EventDetailEvent, EventDetailState> {
 
     try {
       emit(const EventDetailSaving('Inserting row'));
-      
+
       final newRow = EventRow(
         eventId: _currentEventId!,
         position: event.position,
       );
-      
+
       await _repository.insertRowAtPosition(newRow, event.position);
-      
+
       // Reload data
       add(const RefreshEventDetail());
     } catch (e) {
@@ -255,9 +256,9 @@ class EventDetailBloc extends Bloc<EventDetailEvent, EventDetailState> {
 
     try {
       emit(const EventDetailSaving('Deleting row'));
-      
+
       await _repository.deleteRow(event.rowId);
-      
+
       // Reload data and recalculate totals
       add(const RefreshEventDetail());
       add(const RecalculateTotals());
@@ -272,7 +273,7 @@ class EventDetailBloc extends Bloc<EventDetailEvent, EventDetailState> {
 
     try {
       await _repository.reorderRows(_currentEventId!, event.rowIds);
-      
+
       // Reload data to reflect new order
       add(const RefreshEventDetail());
     } catch (e) {
@@ -287,21 +288,21 @@ class EventDetailBloc extends Bloc<EventDetailEvent, EventDetailState> {
     try {
       // Check if cell exists
       final existingCell = await _repository.getCell(event.cell.rowId, event.cell.columnId);
-      
+
       if (existingCell != null) {
         await _repository.updateCell(event.cell);
       } else {
         await _repository.createCell(event.cell);
       }
-      
+
       // Update the cell in current state
-      final updatedCells = currentState.cells.where((cell) => 
+      final updatedCells = currentState.cells.where((cell) =>
           !(cell.rowId == event.cell.rowId && cell.columnId == event.cell.columnId)
       ).toList();
       updatedCells.add(event.cell);
-      
+
       emit(currentState.copyWith(cells: updatedCells));
-      
+
       // Recalculate totals if this affects amount or online columns
       final column = currentState.getColumnById(event.cell.columnId);
       if (column != null && (column.key == AppConstants.amountColumnKey || column.key == AppConstants.onlineColumnKey)) {
@@ -317,7 +318,7 @@ class EventDetailBloc extends Bloc<EventDetailEvent, EventDetailState> {
       rowId: event.rowId,
       columnId: event.columnId,
     ).withTextValue(event.value);
-    
+
     add(UpdateCell(cell));
   }
 
@@ -326,7 +327,7 @@ class EventDetailBloc extends Bloc<EventDetailEvent, EventDetailState> {
       rowId: event.rowId,
       columnId: event.columnId,
     ).withNumberValue(event.value);
-    
+
     add(UpdateCell(cell));
   }
 
@@ -335,7 +336,7 @@ class EventDetailBloc extends Bloc<EventDetailEvent, EventDetailState> {
       rowId: event.rowId,
       columnId: event.columnId,
     ).withBoolValue(event.value);
-    
+
     add(UpdateCell(cell));
   }
 
@@ -348,7 +349,7 @@ class EventDetailBloc extends Bloc<EventDetailEvent, EventDetailState> {
       emit(currentState.copyWith(totals: totals));
     } catch (e) {
       // Don't emit error for totals calculation failure, just log it
-      print('Failed to calculate totals: $e');
+      log('Failed to calculate totals: $e');
     }
   }
 
