@@ -10,26 +10,31 @@ import '../../features/import_export/cubit/import_export_cubit.dart';
 final GetIt sl = GetIt.instance;
 
 Future<void> setupServiceLocator() async {
-  // Database
-  sl.registerLazySingleton<AppDatabase>(() => AppDatabase());
+  try {
+    // Database
+    sl.registerLazySingleton<AppDatabase>(() => AppDatabase());
 
-  // Repositories
-  sl.registerLazySingleton<EventRepository>(
-    () => DriftEventRepository(sl<AppDatabase>()),
-  );
+    // Repositories
+    sl.registerLazySingleton<EventRepository>(
+      () => DriftEventRepository(sl<AppDatabase>()),
+    );
 
-  // BLoCs and Cubits
-  sl.registerFactory<EventsBloc>(
-    () => EventsBloc(repository: sl<EventRepository>()),
-  );
+    // BLoCs and Cubits
+    sl.registerFactory<EventsBloc>(
+      () => EventsBloc(repository: sl<EventRepository>()),
+    );
 
-  sl.registerFactory<EventDetailBloc>(
-    () => EventDetailBloc(repository: sl<EventRepository>()),
-  );
+    sl.registerFactory<EventDetailBloc>(
+      () => EventDetailBloc(repository: sl<EventRepository>()),
+    );
 
-  sl.registerFactory<ImportExportCubit>(
-    () => ImportExportCubit(repository: sl<EventRepository>()),
-  );
+    sl.registerFactory<ImportExportCubit>(
+      () => ImportExportCubit(repository: sl<EventRepository>()),
+    );
+  } catch (e) {
+    print('Error setting up service locator: $e');
+    rethrow;
+  }
 }
 
 Future<void> resetServiceLocator() async {
