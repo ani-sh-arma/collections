@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
-import 'utils/size_utils.dart';
-import 'home_page.dart';
-import 'constants/theme.dart';
 
-void main() {
+import 'utils/size_utils.dart';
+import 'constants/theme.dart';
+import 'core/di/service_locator.dart';
+import 'home_page.dart';
+
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Setup dependency injection
+  await setupServiceLocator();
 
   runApp(const MyApp());
 }
@@ -22,7 +27,7 @@ class MyApp extends StatelessWidget {
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
 
-      home: HomePage(),
+      home: const HomePage(),
     );
   }
 }
