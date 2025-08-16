@@ -7,6 +7,7 @@ import '../../../core/models/models.dart';
 import '../bloc/bloc.dart';
 import '../widgets/event_info_section.dart';
 import '../widgets/collection_table.dart';
+import '../widgets/reorderable_collection_table.dart';
 import '../widgets/totals_table.dart';
 import '../widgets/add_row_dialog.dart';
 import '../../import_export/cubit/cubit.dart';
@@ -33,10 +34,17 @@ class EventDetailPage extends StatelessWidget {
   }
 }
 
-class EventDetailView extends StatelessWidget {
+class EventDetailView extends StatefulWidget {
   final String eventId;
 
   const EventDetailView({super.key, required this.eventId});
+
+  @override
+  State<EventDetailView> createState() => _EventDetailViewState();
+}
+
+class _EventDetailViewState extends State<EventDetailView> {
+  bool _isReorderMode = false;
 
   @override
   Widget build(BuildContext context) {
@@ -145,26 +153,56 @@ class EventDetailView extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Collection Table Title
-                  Padding(
-                    padding: const EdgeInsets.only(left: 10.0),
-                    child: Text(
-                      'Collection Data',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
+                  // Collection Table Title with Reorder Toggle
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(left: 10.0),
+                        child: Text(
+                          'Collection Data',
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                        ),
                       ),
-                    ),
+                      if (!state.isLocked)
+                        Row(
+                          children: [
+                            Text(
+                              'Reorder Mode',
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                            const SizedBox(width: 8),
+                            Switch(
+                              value: _isReorderMode,
+                              onChanged: (value) {
+                                setState(() {
+                                  _isReorderMode = value;
+                                });
+                              },
+                            ),
+                          ],
+                        ),
+                    ],
                   ),
                   const SizedBox(height: AppConstants.padding),
 
-                  // Collection Table
-                  CollectionTable(
-                    event: state.event,
-                    columns: state.sortedColumns,
-                    rows: state.sortedRows,
-                    cells: state.cells,
-                    isLocked: state.isLocked,
-                  ),
+                  // Collection Table (switches between normal and reorderable)
+                  _isReorderMode && !state.isLocked
+                      ? ReorderableCollectionTable(
+                        event: state.event,
+                        columns: state.sortedColumns,
+                        rows: state.sortedRows,
+                        cells: state.cells,
+                        isLocked: state.isLocked,
+                      )
+                      : CollectionTable(
+                        event: state.event,
+                        columns: state.sortedColumns,
+                        rows: state.sortedRows,
+                        cells: state.cells,
+                        isLocked: state.isLocked,
+                      ),
 
                   Divider(),
 
@@ -204,7 +242,9 @@ class EventDetailView extends StatelessWidget {
             const SizedBox(height: AppConstants.largePadding),
             ElevatedButton(
               onPressed: () {
-                context.read<EventDetailBloc>().add(LoadEventDetail(eventId));
+                context.read<EventDetailBloc>().add(
+                  LoadEventDetail(widget.eventId),
+                );
               },
               child: const Text('Retry'),
             ),
