@@ -1,3 +1,4 @@
+import 'package:collections/features/event_detail/widgets/add_column_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -24,10 +25,12 @@ class ReorderableCollectionTable extends StatefulWidget {
   });
 
   @override
-  State<ReorderableCollectionTable> createState() => _ReorderableCollectionTableState();
+  State<ReorderableCollectionTable> createState() =>
+      _ReorderableCollectionTableState();
 }
 
-class _ReorderableCollectionTableState extends State<ReorderableCollectionTable> {
+class _ReorderableCollectionTableState
+    extends State<ReorderableCollectionTable> {
   final Map<String, TextEditingController> _controllers = {};
   final Map<String, Debouncer> _debouncers = {};
 
@@ -59,17 +62,18 @@ class _ReorderableCollectionTableState extends State<ReorderableCollectionTable>
   void _initializeControllers() {
     _controllers.clear();
     _debouncers.clear();
-    
+
     for (final row in widget.rows) {
       for (final column in widget.columns) {
-        if (column.type == ColumnType.text || column.type == ColumnType.number) {
+        if (column.type == ColumnType.text ||
+            column.type == ColumnType.number) {
           final key = '${row.id}_${column.id}';
           final cell = _getCell(row.id, column.id);
-          
+
           _controllers[key] = TextEditingController(
             text: cell?.displayValue ?? '',
           );
-          
+
           _debouncers[key] = Debouncer(delay: AppConstants.autosaveDelay);
         }
       }
@@ -79,10 +83,11 @@ class _ReorderableCollectionTableState extends State<ReorderableCollectionTable>
   void _updateControllers() {
     for (final row in widget.rows) {
       for (final column in widget.columns) {
-        if (column.type == ColumnType.text || column.type == ColumnType.number) {
+        if (column.type == ColumnType.text ||
+            column.type == ColumnType.number) {
           final key = '${row.id}_${column.id}';
           final cell = _getCell(row.id, column.id);
-          
+
           if (_controllers.containsKey(key)) {
             final controller = _controllers[key]!;
             final newValue = cell?.displayValue ?? '';
@@ -116,19 +121,13 @@ class _ReorderableCollectionTableState extends State<ReorderableCollectionTable>
       return _buildEmptyState();
     }
 
-    return Card(
-      elevation: 2,
-      child: Column(
-        children: [
-          // Header row
-          _buildHeaderRow(),
-          // Reorderable rows
-          if (!widget.isLocked)
-            _buildReorderableRows()
-          else
-            _buildStaticRows(),
-        ],
-      ),
+    return Column(
+      children: [
+        // Header row
+        _buildHeaderRow(),
+        // Reorderable rows
+        if (!widget.isLocked) _buildReorderableRows() else _buildStaticRows(),
+      ],
     );
   }
 
@@ -139,17 +138,13 @@ class _ReorderableCollectionTableState extends State<ReorderableCollectionTable>
         padding: const EdgeInsets.all(AppConstants.largePadding),
         child: Column(
           children: [
-            Icon(
-              Icons.table_chart,
-              size: 48,
-              color: Colors.grey.shade400,
-            ),
+            Icon(Icons.table_chart, size: 48, color: Colors.grey.shade400),
             const SizedBox(height: AppConstants.padding),
             Text(
               AppConstants.emptyTableMessage,
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: Colors.grey.shade600,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyLarge?.copyWith(color: Colors.grey.shade600),
               textAlign: TextAlign.center,
             ),
           ],
@@ -161,23 +156,25 @@ class _ReorderableCollectionTableState extends State<ReorderableCollectionTable>
   Widget _buildHeaderRow() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
         border: Border.all(color: Colors.grey.shade300),
       ),
       child: Row(
-        children: widget.columns.map((column) {
-          return Expanded(
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                border: Border(
-                  right: BorderSide(color: Colors.grey.shade300),
+        children: [
+          const SizedBox(width: 40),
+          ...widget.columns.map((column) {
+            return Expanded(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  border: Border(
+                    right: BorderSide(color: Colors.grey.shade300),
+                  ),
                 ),
+                child: _buildColumnHeader(column),
               ),
-              child: _buildColumnHeader(column),
-            ),
-          );
-        }).toList(),
+            );
+          }),
+        ],
       ),
     );
   }
@@ -186,16 +183,16 @@ class _ReorderableCollectionTableState extends State<ReorderableCollectionTable>
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Expanded(
-          child: Text(
-            column.label,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 14,
+        if (column.label == '+')
+          const SizedBox.shrink()
+        else
+          Expanded(
+            child: Text(
+              column.label,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              textAlign: TextAlign.center,
             ),
-            textAlign: TextAlign.center,
           ),
-        ),
         if (column.key == AppConstants.addColumnKey && !widget.isLocked)
           IconButton(
             onPressed: _showAddColumnDialog,
@@ -207,16 +204,11 @@ class _ReorderableCollectionTableState extends State<ReorderableCollectionTable>
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert, size: 16),
             onSelected: (value) => _handleColumnAction(column, value),
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'rename',
-                child: Text('Rename'),
-              ),
-              const PopupMenuItem(
-                value: 'delete',
-                child: Text('Delete'),
-              ),
-            ],
+            itemBuilder:
+                (context) => [
+                  const PopupMenuItem(value: 'rename', child: Text('Rename')),
+                  const PopupMenuItem(value: 'delete', child: Text('Delete')),
+                ],
           ),
       ],
     );
@@ -237,11 +229,12 @@ class _ReorderableCollectionTableState extends State<ReorderableCollectionTable>
 
   Widget _buildStaticRows() {
     return Column(
-      children: widget.rows.asMap().entries.map((entry) {
-        final index = entry.key;
-        final row = entry.value;
-        return _buildStaticRow(row, index);
-      }).toList(),
+      children:
+          widget.rows.asMap().entries.map((entry) {
+            final index = entry.key;
+            final row = entry.value;
+            return _buildStaticRow(row, index);
+          }).toList(),
     );
   }
 
@@ -250,7 +243,6 @@ class _ReorderableCollectionTableState extends State<ReorderableCollectionTable>
       key: key,
       decoration: BoxDecoration(
         border: Border.all(color: Colors.grey.shade300),
-        color: index.isEven ? Colors.white : Colors.grey.shade50,
       ),
       child: Row(
         children: [
@@ -259,18 +251,38 @@ class _ReorderableCollectionTableState extends State<ReorderableCollectionTable>
             width: 40,
             height: 56,
             decoration: BoxDecoration(
-              color: Colors.grey.shade200,
-              border: Border(
-                right: BorderSide(color: Colors.grey.shade300),
-              ),
+              border: Border(right: BorderSide(color: Colors.grey.shade300)),
             ),
-            child: const Icon(
-              Icons.drag_handle,
-              color: Colors.grey,
-              size: 20,
-            ),
+            child: const Icon(Icons.drag_handle, color: Colors.grey, size: 20),
           ),
           // Row cells
+          ...widget.columns.map((column) {
+            return Expanded(
+              child: Container(
+                height: 56,
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  border: Border(
+                    right: BorderSide(color: Colors.grey.shade300),
+                  ),
+                ),
+                child: _buildCell(row, column, index),
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStaticRow(EventRow row, int index) {
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Row(
+        children: [
+          const SizedBox(width: 50),
           ...widget.columns.map((column) {
             return Expanded(
               child: Container(
@@ -290,34 +302,9 @@ class _ReorderableCollectionTableState extends State<ReorderableCollectionTable>
     );
   }
 
-  Widget _buildStaticRow(EventRow row, int index) {
-    return Container(
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.shade300),
-        color: index.isEven ? Colors.white : Colors.grey.shade50,
-      ),
-      child: Row(
-        children: widget.columns.map((column) {
-          return Expanded(
-            child: Container(
-              height: 56,
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                border: Border(
-                  right: BorderSide(color: Colors.grey.shade300),
-                ),
-              ),
-              child: _buildCell(row, column, index),
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-
   Widget _buildCell(EventRow row, EventColumn column, int rowIndex) {
     final cell = _getCell(row.id, column.id);
-    
+
     switch (column.type) {
       case ColumnType.serial:
         return _buildSerialCell(rowIndex);
@@ -337,10 +324,7 @@ class _ReorderableCollectionTableState extends State<ReorderableCollectionTable>
       alignment: Alignment.center,
       child: Text(
         '${index + 1}',
-        style: const TextStyle(
-          fontWeight: FontWeight.w500,
-          color: Colors.grey,
-        ),
+        style: const TextStyle(fontWeight: FontWeight.w500, color: Colors.grey),
       ),
     );
   }
@@ -355,7 +339,7 @@ class _ReorderableCollectionTableState extends State<ReorderableCollectionTable>
 
     final key = '${row.id}_${column.id}';
     final controller = _controllers[key];
-    
+
     if (controller == null) return const SizedBox.shrink();
 
     return TextField(
@@ -367,11 +351,7 @@ class _ReorderableCollectionTableState extends State<ReorderableCollectionTable>
       onChanged: (value) {
         _debouncers[key]?.call(() {
           context.read<EventDetailBloc>().add(
-            UpdateCellText(
-              rowId: row.id,
-              columnId: column.id,
-              value: value,
-            ),
+            UpdateCellText(rowId: row.id, columnId: column.id, value: value),
           );
         });
       },
@@ -400,7 +380,7 @@ class _ReorderableCollectionTableState extends State<ReorderableCollectionTable>
 
     final key = '${row.id}_${column.id}';
     final controller = _controllers[key];
-    
+
     if (controller == null) return const SizedBox.shrink();
 
     return TextField(
@@ -430,11 +410,7 @@ class _ReorderableCollectionTableState extends State<ReorderableCollectionTable>
       onEditingComplete: () {
         final numValue = double.tryParse(controller.text) ?? 0.0;
         context.read<EventDetailBloc>().add(
-          UpdateCellNumber(
-            rowId: row.id,
-            columnId: column.id,
-            value: numValue,
-          ),
+          UpdateCellNumber(rowId: row.id, columnId: column.id, value: numValue),
         );
       },
     );
@@ -442,18 +418,21 @@ class _ReorderableCollectionTableState extends State<ReorderableCollectionTable>
 
   Widget _buildBooleanCell(EventRow row, EventColumn column, Cell? cell) {
     final isChecked = cell?.boolValue ?? false;
-    
+
     return Checkbox(
       value: isChecked,
-      onChanged: widget.isLocked ? null : (value) {
-        context.read<EventDetailBloc>().add(
-          UpdateCellBool(
-            rowId: row.id,
-            columnId: column.id,
-            value: value ?? false,
-          ),
-        );
-      },
+      onChanged:
+          widget.isLocked
+              ? null
+              : (value) {
+                context.read<EventDetailBloc>().add(
+                  UpdateCellBool(
+                    rowId: row.id,
+                    columnId: column.id,
+                    value: value ?? false,
+                  ),
+                );
+              },
     );
   }
 
@@ -465,12 +444,10 @@ class _ReorderableCollectionTableState extends State<ReorderableCollectionTable>
     return PopupMenuButton<String>(
       icon: const Icon(Icons.more_horiz, size: 16),
       onSelected: (value) => _handleRowAction(row, value),
-      itemBuilder: (context) => [
-        const PopupMenuItem(
-          value: 'delete',
-          child: Text('Delete Row'),
-        ),
-      ],
+      itemBuilder:
+          (context) => [
+            const PopupMenuItem(value: 'delete', child: Text('Delete Row')),
+          ],
     );
   }
 
@@ -478,11 +455,11 @@ class _ReorderableCollectionTableState extends State<ReorderableCollectionTable>
     if (oldIndex < newIndex) {
       newIndex -= 1;
     }
-    
+
     final reorderedRows = List<EventRow>.from(widget.rows);
     final item = reorderedRows.removeAt(oldIndex);
     reorderedRows.insert(newIndex, item);
-    
+
     // Update positions and send to BLoC
     final rowIds = reorderedRows.map((row) => row.id).toList();
     context.read<EventDetailBloc>().add(ReorderRows(rowIds));
@@ -510,101 +487,105 @@ class _ReorderableCollectionTableState extends State<ReorderableCollectionTable>
   void _showAddColumnDialog() {
     showDialog(
       context: context,
-      builder: (dialogContext) => BlocProvider.value(
-        value: context.read<EventDetailBloc>(),
-        child: const AddColumnDialog(),
-      ),
+      builder:
+          (dialogContext) => BlocProvider.value(
+            value: context.read<EventDetailBloc>(),
+            child: const AddColumnDialog(),
+          ),
     );
   }
 
   void _showRenameColumnDialog(EventColumn column) {
     final controller = TextEditingController(text: column.label);
-    
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Rename Column'),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(
-            labelText: 'Column Name',
-            border: OutlineInputBorder(),
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Rename Column'),
+            content: TextField(
+              controller: controller,
+              decoration: const InputDecoration(
+                labelText: 'Column Name',
+                border: OutlineInputBorder(),
+              ),
+              autofocus: true,
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  final newLabel = controller.text.trim();
+                  if (newLabel.isNotEmpty && newLabel != column.label) {
+                    context.read<EventDetailBloc>().add(
+                      UpdateColumn(column.copyWith(label: newLabel)),
+                    );
+                  }
+                  Navigator.of(context).pop();
+                },
+                child: const Text('Rename'),
+              ),
+            ],
           ),
-          autofocus: true,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final newLabel = controller.text.trim();
-              if (newLabel.isNotEmpty && newLabel != column.label) {
-                context.read<EventDetailBloc>().add(
-                  UpdateColumn(column.copyWith(label: newLabel)),
-                );
-              }
-              Navigator.of(context).pop();
-            },
-            child: const Text('Rename'),
-          ),
-        ],
-      ),
     );
   }
 
   void _showDeleteColumnConfirmation(EventColumn column) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Column'),
-        content: const Text(AppConstants.deleteColumnConfirmation),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Delete Column'),
+            content: const Text(AppConstants.deleteColumnConfirmation),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  context.read<EventDetailBloc>().add(DeleteColumn(column.id));
+                  Navigator.of(context).pop();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Delete'),
+              ),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () {
-              context.read<EventDetailBloc>().add(DeleteColumn(column.id));
-              Navigator.of(context).pop();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
     );
   }
 
   void _showDeleteRowConfirmation(EventRow row) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Row'),
-        content: const Text(AppConstants.deleteRowConfirmation),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Delete Row'),
+            content: const Text(AppConstants.deleteRowConfirmation),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  context.read<EventDetailBloc>().add(DeleteRow(row.id));
+                  Navigator.of(context).pop();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Delete'),
+              ),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () {
-              context.read<EventDetailBloc>().add(DeleteRow(row.id));
-              Navigator.of(context).pop();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
     );
   }
 }
