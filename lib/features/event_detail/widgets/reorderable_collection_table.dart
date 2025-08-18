@@ -121,13 +121,25 @@ class _ReorderableCollectionTableState
       return _buildEmptyState();
     }
 
-    return Column(
-      children: [
-        // Header row
-        _buildHeaderRow(),
-        // Reorderable rows
-        if (!widget.isLocked) _buildReorderableRows() else _buildStaticRows(),
-      ],
+    return Card(
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(AppConstants.smallPadding),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Column(
+            children: [
+              // Header row
+              _buildHeaderRow(),
+              // Reorderable rows
+              if (!widget.isLocked)
+                _buildReorderableRows()
+              else
+                _buildStaticRows(),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -162,7 +174,8 @@ class _ReorderableCollectionTableState
         children: [
           const SizedBox(width: 40),
           ...widget.columns.map((column) {
-            return Expanded(
+            return SizedBox(
+              width: 120,
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 decoration: BoxDecoration(
@@ -180,50 +193,60 @@ class _ReorderableCollectionTableState
   }
 
   Widget _buildColumnHeader(EventColumn column) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (column.label == '+')
-          const SizedBox.shrink()
-        else
-          Expanded(
-            child: Text(
-              column.label,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-              textAlign: TextAlign.center,
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (column.label == '+')
+            const SizedBox.shrink()
+          else
+            Expanded(
+              child: Text(
+                column.label,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+                textAlign: TextAlign.center,
+              ),
             ),
-          ),
-        if (column.key == AppConstants.addColumnKey && !widget.isLocked)
-          IconButton(
-            onPressed: _showAddColumnDialog,
-            icon: const Icon(Icons.add),
-            tooltip: 'Add Column',
-            iconSize: 20,
-          )
-        else if (!column.fixed && !widget.isLocked)
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert, size: 16),
-            onSelected: (value) => _handleColumnAction(column, value),
-            itemBuilder:
-                (context) => [
-                  const PopupMenuItem(value: 'rename', child: Text('Rename')),
-                  const PopupMenuItem(value: 'delete', child: Text('Delete')),
-                ],
-          ),
-      ],
+          if (column.key == AppConstants.addColumnKey && !widget.isLocked)
+            Expanded(
+              child: InkWell(
+                onTap: _showAddColumnDialog,
+                child: const Icon(Icons.add),
+              ),
+            )
+          else if (!column.fixed && !widget.isLocked)
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert, size: 16),
+              onSelected: (value) => _handleColumnAction(column, value),
+              itemBuilder:
+                  (context) => [
+                    const PopupMenuItem(value: 'rename', child: Text('Rename')),
+                    const PopupMenuItem(value: 'delete', child: Text('Delete')),
+                  ],
+            ),
+        ],
+      ),
     );
   }
 
   Widget _buildReorderableRows() {
-    return ReorderableListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: widget.rows.length,
-      onReorder: _onReorder,
-      itemBuilder: (context, index) {
-        final row = widget.rows[index];
-        return _buildReorderableRow(row, index, Key(row.id));
-      },
+    final tableWidth = 40 + widget.columns.length * 120;
+    return SizedBox(
+      width: tableWidth.toDouble(),
+      child: ReorderableListView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: widget.rows.length,
+        onReorder: _onReorder,
+        itemBuilder: (context, index) {
+          final row = widget.rows[index];
+          return _buildReorderableRow(row, index, Key(row.id));
+        },
+      ),
     );
   }
 
@@ -248,7 +271,7 @@ class _ReorderableCollectionTableState
         children: [
           // Drag handle
           Container(
-            width: 40,
+            width: 38,
             height: 56,
             decoration: BoxDecoration(
               border: Border(right: BorderSide(color: Colors.grey.shade300)),
@@ -257,7 +280,8 @@ class _ReorderableCollectionTableState
           ),
           // Row cells
           ...widget.columns.map((column) {
-            return Expanded(
+            return SizedBox(
+              width: 120,
               child: Container(
                 height: 56,
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -284,7 +308,8 @@ class _ReorderableCollectionTableState
         children: [
           const SizedBox(width: 50),
           ...widget.columns.map((column) {
-            return Expanded(
+            return SizedBox(
+              width: 120,
               child: Container(
                 height: 56,
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
