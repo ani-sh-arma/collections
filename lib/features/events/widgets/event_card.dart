@@ -130,17 +130,14 @@ class EventCard extends StatelessWidget {
           top: Radius.circular(AppConstants.borderRadius),
         ),
       ),
-      builder: (dialogContext) => MultiBlocProvider(
-        providers: [
-          BlocProvider.value(
-            value: context.read<EventsCubit>(),
+      builder:
+          (dialogContext) => MultiBlocProvider(
+            providers: [
+              BlocProvider.value(value: context.read<EventsCubit>()),
+              BlocProvider.value(value: context.read<ImportExportCubit>()),
+            ],
+            child: _EventActionMenu(event: event, parentContext: context),
           ),
-          BlocProvider.value(
-            value: context.read<ImportExportCubit>(),
-          ),
-        ],
-        child: _EventActionMenu(event: event, parentContext: context),
-      ),
     );
   }
 }
@@ -180,7 +177,8 @@ class _EventActionMenu extends StatelessWidget {
             title: 'View Details',
             onTap: () {
               Navigator.of(context).pop(); // Pop ModalBottomSheet
-              Navigator.of(parentContext).push( // Use parentContext for pushing the new route
+              Navigator.of(parentContext).push(
+                // Use parentContext for pushing the new route
                 MaterialPageRoute(
                   builder: (context) => EventDetailPage(eventId: event.id),
                 ),
@@ -192,7 +190,17 @@ class _EventActionMenu extends StatelessWidget {
             title: 'Make a Copy',
             onTap: () {
               Navigator.of(context).pop();
-              context.read<EventsCubit>().copyEvent(event.id);
+              context.read<EventsCubit>().copyEvent(event.id, withData: true);
+            },
+          ),
+          _ActionTile(
+            icon:
+                Icons
+                    .copy_all, // Using a different icon for "copy without data"
+            title: 'Make a Copy (Without Data)',
+            onTap: () {
+              Navigator.of(context).pop();
+              context.read<EventsCubit>().copyEvent(event.id, withData: false);
             },
           ),
           _ActionTile(
@@ -215,9 +223,15 @@ class _EventActionMenu extends StatelessWidget {
             icon: Icons.edit,
             title: 'Rename',
             onTap: () async {
-              final eventsCubit = parentContext.read<EventsCubit>(); // Read from parentContext
-              await _showRenameDialog(context, eventsCubit); // Await dialog result
-              Navigator.of(context).pop(); // Pop ModalBottomSheet after dialog is dismissed
+              final eventsCubit =
+                  parentContext.read<EventsCubit>(); // Read from parentContext
+              await _showRenameDialog(
+                context,
+                eventsCubit,
+              ); // Await dialog result
+              Navigator.of(
+                context,
+              ).pop(); // Pop ModalBottomSheet after dialog is dismissed
             },
           ),
           _ActionTile(
@@ -225,9 +239,15 @@ class _EventActionMenu extends StatelessWidget {
             title: 'Delete',
             textColor: Colors.red,
             onTap: () async {
-              final eventsCubit = parentContext.read<EventsCubit>(); // Read from parentContext
-              await _showDeleteConfirmation(context, eventsCubit); // Await dialog result
-              Navigator.of(context).pop(); // Pop ModalBottomSheet after dialog is dismissed
+              final eventsCubit =
+                  parentContext.read<EventsCubit>(); // Read from parentContext
+              await _showDeleteConfirmation(
+                context,
+                eventsCubit,
+              ); // Await dialog result
+              Navigator.of(
+                context,
+              ).pop(); // Pop ModalBottomSheet after dialog is dismissed
             },
           ),
           const SizedBox(height: AppConstants.padding),
@@ -236,7 +256,10 @@ class _EventActionMenu extends StatelessWidget {
     );
   }
 
-  Future<void> _showRenameDialog(BuildContext menuContext, EventsCubit eventsCubit) async {
+  Future<void> _showRenameDialog(
+    BuildContext menuContext,
+    EventsCubit eventsCubit,
+  ) async {
     final controller = TextEditingController(text: event.title);
 
     await showDialog(
@@ -266,9 +289,7 @@ class _EventActionMenu extends StatelessWidget {
                   onPressed: () {
                     final newTitle = controller.text.trim();
                     if (newTitle.isNotEmpty && newTitle != event.title) {
-                      eventsCubit.updateEvent(
-                        event.copyWith(title: newTitle),
-                      );
+                      eventsCubit.updateEvent(event.copyWith(title: newTitle));
                     }
                     Navigator.of(dialogContext).pop(); // Pop AlertDialog
                   },
@@ -280,7 +301,10 @@ class _EventActionMenu extends StatelessWidget {
     );
   }
 
-  Future<void> _showDeleteConfirmation(BuildContext menuContext, EventsCubit eventsCubit) async {
+  Future<void> _showDeleteConfirmation(
+    BuildContext menuContext,
+    EventsCubit eventsCubit,
+  ) async {
     await showDialog(
       context: menuContext, // Use the _EventActionMenu's context
       builder:

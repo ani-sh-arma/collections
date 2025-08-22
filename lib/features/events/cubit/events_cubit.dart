@@ -10,8 +10,8 @@ class EventsCubit extends Cubit<EventsState> {
   final EventRepository _repository;
 
   EventsCubit({required EventRepository repository})
-      : _repository = repository,
-        super(const EventsInitial());
+    : _repository = repository,
+      super(const EventsInitial());
 
   Future<void> loadEvents() async {
     try {
@@ -29,7 +29,8 @@ class EventsCubit extends Cubit<EventsState> {
 
       // Generate gradient colors if not provided
       Event eventToCreate = event;
-      if (eventToCreate.gradientColorA.isEmpty || eventToCreate.gradientColorB.isEmpty) {
+      if (eventToCreate.gradientColorA.isEmpty ||
+          eventToCreate.gradientColorB.isEmpty) {
         final gradientHex = GradientGenerator.getRandomGradientHex();
         eventToCreate = eventToCreate.copyWith(
           gradientColorA: gradientHex['colorA']!,
@@ -75,7 +76,7 @@ class EventsCubit extends Cubit<EventsState> {
     }
   }
 
-  Future<void> copyEvent(String eventId) async {
+  Future<void> copyEvent(String eventId, {bool withData = true}) async {
     try {
       emit(const EventCreating());
 
@@ -86,20 +87,12 @@ class EventsCubit extends Cubit<EventsState> {
         return;
       }
 
-      // Export the original event data
-      final exportData = await _repository.exportEvents([eventId]);
-      if (exportData.events.isEmpty) {
-        emit(const EventsError('Failed to copy event data'));
-        return;
-      }
-
       // Create a copy with new ID and modified title
-      final originalEventData = exportData.events.first;
       final gradientHex = GradientGenerator.getRandomGradientHex();
 
-      final copiedEvent = originalEventData.event.copyWith(
+      final copiedEvent = originalEvent.copyWith(
         id: const Uuid().v4(),
-        title: '${originalEventData.event.title} (Copy)',
+        title: '${originalEvent.title} (Copy)',
         gradientColorA: gradientHex['colorA']!,
         gradientColorB: gradientHex['colorB']!,
         locked: false,
@@ -107,23 +100,35 @@ class EventsCubit extends Cubit<EventsState> {
         updatedAt: DateTime.now(),
       );
 
-      // Create the copied event with all its data
-      await _repository.createEventWithDefaults(copiedEvent);
+      // Create the copied event with default empty data
 
-      // Import the original data structure (columns, rows, cells)
-      final modifiedExportData = ExportData(
-        events: [
-          EventExportData(
-            event: copiedEvent,
-            columns: originalEventData.columns,
-            rows: originalEventData.rows,
-            cells: originalEventData.cells,
-            totals: originalEventData.totals,
-          ),
-        ],
-      );
+      if (withData) {
+        // Export the original event data
+        final exportData = await _repository.exportEvents([eventId]);
+        if (exportData.events.isEmpty) {
+          emit(const EventsError('Failed to copy event data'));
+          return;
+        }
 
-      await _repository.importEvents(modifiedExportData);
+        final originalEventData = exportData.events.first;
+
+        // Import the original data structure (columns, rows, cells) into the new event
+        final modifiedExportData = ExportData(
+          events: [
+            EventExportData(
+              event: copiedEvent,
+              columns: originalEventData.columns,
+              rows: originalEventData.rows,
+              cells: originalEventData.cells,
+              totals: originalEventData.totals,
+            ),
+          ],
+        );
+        await _repository.importEvents(modifiedExportData);
+      } else {
+        await _repository.createEventWithDefaults(copiedEvent);
+      }
+
       emit(EventCreated(copiedEvent));
 
       // Reload events to show the new copy
@@ -162,4 +167,3 @@ class EventsCubit extends Cubit<EventsState> {
     await loadEvents();
   }
 }
-

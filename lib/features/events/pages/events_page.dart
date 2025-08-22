@@ -231,10 +231,7 @@ class _EventsListView extends StatelessWidget {
         padding: const EdgeInsets.all(AppConstants.padding),
         itemCount: events.length,
         itemBuilder: (context, index) {
-          return Padding(
-            padding: const EdgeInsets.only(bottom: AppConstants.padding),
-            child: EventCard(event: events[index]),
-          );
+          return EventCard(event: events[index]);
         },
       ),
     );
