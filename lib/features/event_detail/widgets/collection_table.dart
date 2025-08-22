@@ -5,7 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/models/models.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/utils/debouncer.dart';
-import '../bloc/bloc.dart';
+import '../cubit/event_detail_cubit.dart';
 import 'add_column_dialog.dart';
 
 class CollectionTable extends StatefulWidget {
@@ -273,19 +273,19 @@ class _CollectionTableState extends State<CollectionTable> {
       ),
       onChanged: (value) {
         _debouncers[key]?.call(() {
-          context.read<EventDetailBloc>().add(
-            UpdateCellText(rowId: row.id, columnId: column.id, value: value),
+          context.read<EventDetailCubit>().updateCellText(
+            rowId: row.id,
+            columnId: column.id,
+            value: value,
           );
         });
       },
       onEditingComplete: () {
         // Immediate save on editing complete
-        context.read<EventDetailBloc>().add(
-          UpdateCellText(
-            rowId: row.id,
-            columnId: column.id,
-            value: controller.text,
-          ),
+        context.read<EventDetailCubit>().updateCellText(
+          rowId: row.id,
+          columnId: column.id,
+          value: controller.text,
         );
       },
     );
@@ -322,19 +322,19 @@ class _CollectionTableState extends State<CollectionTable> {
       onChanged: (value) {
         _debouncers[key]?.call(() {
           final numValue = double.tryParse(value) ?? 0.0;
-          context.read<EventDetailBloc>().add(
-            UpdateCellNumber(
-              rowId: row.id,
-              columnId: column.id,
-              value: numValue,
-            ),
+          context.read<EventDetailCubit>().updateCellNumber(
+            rowId: row.id,
+            columnId: column.id,
+            value: numValue,
           );
         });
       },
       onEditingComplete: () {
         final numValue = double.tryParse(controller.text) ?? 0.0;
-        context.read<EventDetailBloc>().add(
-          UpdateCellNumber(rowId: row.id, columnId: column.id, value: numValue),
+        context.read<EventDetailCubit>().updateCellNumber(
+          rowId: row.id,
+          columnId: column.id,
+          value: numValue,
         );
       },
     );
@@ -349,12 +349,10 @@ class _CollectionTableState extends State<CollectionTable> {
           widget.isLocked
               ? null
               : (value) {
-                context.read<EventDetailBloc>().add(
-                  UpdateCellBool(
-                    rowId: row.id,
-                    columnId: column.id,
-                    value: value ?? false,
-                  ),
+                context.read<EventDetailCubit>().updateCellBool(
+                  rowId: row.id,
+                  columnId: column.id,
+                  value: value ?? false,
                 );
               },
     );
@@ -395,13 +393,13 @@ class _CollectionTableState extends State<CollectionTable> {
   }
 
   void _showAddColumnDialog() {
-    final eventDetailBloc =
-        context.read<EventDetailBloc>(); // Get bloc from parent context
+    final eventDetailCubit =
+        context.read<EventDetailCubit>(); // Get cubit from parent context
     showDialog(
       context: context,
       builder:
           (dialogContext) => BlocProvider.value(
-            value: eventDetailBloc, // Pass the pre-obtained bloc
+            value: eventDetailCubit, // Pass the pre-obtained cubit
             child: const AddColumnDialog(),
           ),
     );
@@ -409,14 +407,14 @@ class _CollectionTableState extends State<CollectionTable> {
 
   void _showRenameColumnDialog(EventColumn column) {
     final controller = TextEditingController(text: column.label);
-    final eventDetailBloc =
-        context.read<EventDetailBloc>(); // Get bloc from parent context
+    final eventDetailCubit =
+        context.read<EventDetailCubit>(); // Get cubit from parent context
 
     showDialog(
       context: context,
       builder:
           (dialogContext) => BlocProvider.value(
-            value: eventDetailBloc, // Pass the pre-obtained bloc
+            value: eventDetailCubit, // Pass the pre-obtained cubit
             child: AlertDialog(
               title: const Text('Rename Column'),
               content: TextField(
@@ -436,8 +434,8 @@ class _CollectionTableState extends State<CollectionTable> {
                   onPressed: () {
                     final newLabel = controller.text.trim();
                     if (newLabel.isNotEmpty && newLabel != column.label) {
-                      eventDetailBloc.add(
-                        UpdateColumn(column.copyWith(label: newLabel)),
+                      eventDetailCubit.updateColumn(
+                        column.copyWith(label: newLabel),
                       );
                     }
                     Navigator.of(dialogContext).pop();
@@ -451,14 +449,14 @@ class _CollectionTableState extends State<CollectionTable> {
   }
 
   void _showDeleteColumnConfirmation(EventColumn column) {
-    final eventDetailBloc =
-        context.read<EventDetailBloc>(); // Get bloc from parent context
+    final eventDetailCubit =
+        context.read<EventDetailCubit>(); // Get cubit from parent context
 
     showDialog(
       context: context,
       builder:
           (dialogContext) => BlocProvider.value(
-            value: eventDetailBloc, // Pass the pre-obtained bloc
+            value: eventDetailCubit, // Pass the pre-obtained cubit
             child: AlertDialog(
               title: const Text('Delete Column'),
               content: const Text(AppConstants.deleteColumnConfirmation),
@@ -469,7 +467,7 @@ class _CollectionTableState extends State<CollectionTable> {
                 ),
                 ElevatedButton(
                   onPressed: () {
-                    eventDetailBloc.add(DeleteColumn(column.id));
+                    eventDetailCubit.deleteColumn(column.id);
                     Navigator.of(dialogContext).pop();
                   },
                   style: ElevatedButton.styleFrom(
@@ -485,13 +483,13 @@ class _CollectionTableState extends State<CollectionTable> {
   }
 
   void _showDeleteRowConfirmation(EventRow row) {
-    final eventDetailBloc =
-        context.read<EventDetailBloc>(); // Get bloc from parent context
+    final eventDetailCubit =
+        context.read<EventDetailCubit>(); // Get cubit from parent context
     showDialog(
       context: context,
       builder:
           (dialogContext) => BlocProvider.value(
-            value: eventDetailBloc,
+            value: eventDetailCubit,
             child: AlertDialog(
               title: const Text('Delete Row'),
               content: const Text(AppConstants.deleteRowConfirmation),
@@ -502,7 +500,7 @@ class _CollectionTableState extends State<CollectionTable> {
                 ),
                 ElevatedButton(
                   onPressed: () {
-                    eventDetailBloc.add(DeleteRow(row.id));
+                    eventDetailCubit.deleteRow(row.id);
                     Navigator.of(dialogContext).pop();
                   },
                   style: ElevatedButton.styleFrom(

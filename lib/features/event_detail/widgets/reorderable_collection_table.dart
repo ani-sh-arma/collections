@@ -6,7 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/models/models.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/utils/debouncer.dart';
-import '../bloc/bloc.dart';
+import '../cubit/event_detail_cubit.dart';
 
 class ReorderableCollectionTable extends StatefulWidget {
   final Event event;
@@ -321,7 +321,7 @@ class _ReorderableCollectionTableState
                 child: _buildCell(row, column, index),
               ),
             );
-          }).toList(),
+          }),
         ],
       ),
     );
@@ -375,18 +375,18 @@ class _ReorderableCollectionTableState
       ),
       onChanged: (value) {
         _debouncers[key]?.call(() {
-          context.read<EventDetailBloc>().add(
-            UpdateCellText(rowId: row.id, columnId: column.id, value: value),
+          context.read<EventDetailCubit>().updateCellText(
+            rowId: row.id,
+            columnId: column.id,
+            value: value,
           );
         });
       },
       onEditingComplete: () {
-        context.read<EventDetailBloc>().add(
-          UpdateCellText(
-            rowId: row.id,
-            columnId: column.id,
-            value: controller.text,
-          ),
+        context.read<EventDetailCubit>().updateCellText(
+          rowId: row.id,
+          columnId: column.id,
+          value: controller.text,
         );
       },
     );
@@ -423,19 +423,19 @@ class _ReorderableCollectionTableState
       onChanged: (value) {
         _debouncers[key]?.call(() {
           final numValue = double.tryParse(value) ?? 0.0;
-          context.read<EventDetailBloc>().add(
-            UpdateCellNumber(
-              rowId: row.id,
-              columnId: column.id,
-              value: numValue,
-            ),
+          context.read<EventDetailCubit>().updateCellNumber(
+            rowId: row.id,
+            columnId: column.id,
+            value: numValue,
           );
         });
       },
       onEditingComplete: () {
         final numValue = double.tryParse(controller.text) ?? 0.0;
-        context.read<EventDetailBloc>().add(
-          UpdateCellNumber(rowId: row.id, columnId: column.id, value: numValue),
+        context.read<EventDetailCubit>().updateCellNumber(
+          rowId: row.id,
+          columnId: column.id,
+          value: numValue,
         );
       },
     );
@@ -450,12 +450,10 @@ class _ReorderableCollectionTableState
           widget.isLocked
               ? null
               : (value) {
-                context.read<EventDetailBloc>().add(
-                  UpdateCellBool(
-                    rowId: row.id,
-                    columnId: column.id,
-                    value: value ?? false,
-                  ),
+                context.read<EventDetailCubit>().updateCellBool(
+                  rowId: row.id,
+                  columnId: column.id,
+                  value: value ?? false,
                 );
               },
     );
@@ -487,7 +485,7 @@ class _ReorderableCollectionTableState
 
     // Update positions and send to BLoC
     final rowIds = reorderedRows.map((row) => row.id).toList();
-    context.read<EventDetailBloc>().add(ReorderRows(rowIds));
+    context.read<EventDetailCubit>().reorderRows(rowIds);
   }
 
   void _handleColumnAction(EventColumn column, String action) {
@@ -514,7 +512,7 @@ class _ReorderableCollectionTableState
       context: context,
       builder:
           (dialogContext) => BlocProvider.value(
-            value: context.read<EventDetailBloc>(),
+            value: context.read<EventDetailCubit>(),
             child: const AddColumnDialog(),
           ),
     );
@@ -545,8 +543,8 @@ class _ReorderableCollectionTableState
                 onPressed: () {
                   final newLabel = controller.text.trim();
                   if (newLabel.isNotEmpty && newLabel != column.label) {
-                    context.read<EventDetailBloc>().add(
-                      UpdateColumn(column.copyWith(label: newLabel)),
+                    context.read<EventDetailCubit>().updateColumn(
+                      column.copyWith(label: newLabel),
                     );
                   }
                   Navigator.of(context).pop();
@@ -572,7 +570,7 @@ class _ReorderableCollectionTableState
               ),
               ElevatedButton(
                 onPressed: () {
-                  context.read<EventDetailBloc>().add(DeleteColumn(column.id));
+                  context.read<EventDetailCubit>().deleteColumn(column.id);
                   Navigator.of(context).pop();
                 },
                 style: ElevatedButton.styleFrom(
@@ -600,7 +598,7 @@ class _ReorderableCollectionTableState
               ),
               ElevatedButton(
                 onPressed: () {
-                  context.read<EventDetailBloc>().add(DeleteRow(row.id));
+                  context.read<EventDetailCubit>().deleteRow(row.id);
                   Navigator.of(context).pop();
                 },
                 style: ElevatedButton.styleFrom(

@@ -1,14 +1,16 @@
 import 'dart:developer';
 
+import 'package:collections/features/events/cubit/events_state.dart';
+import 'package:collections/features/import_export/cubit/import_export_cubit.dart';
+import 'package:collections/features/import_export/cubit/import_export_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/di/service_locator.dart';
 import '../../../core/constants/app_constants.dart';
-import '../bloc/bloc.dart';
+import '../cubit/events_cubit.dart';
 import '../widgets/event_card.dart';
 import '../widgets/create_event_dialog.dart';
-import '../../import_export/cubit/cubit.dart';
 import '../../import_export/widgets/import_dialog.dart';
 
 class EventsPage extends StatelessWidget {
@@ -18,8 +20,8 @@ class EventsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
-        BlocProvider<EventsBloc>(
-          create: (context) => sl<EventsBloc>()..add(const LoadEvents()),
+        BlocProvider<EventsCubit>(
+          create: (context) => sl<EventsCubit>()..loadEvents(),
         ),
         BlocProvider<ImportExportCubit>(
           create: (context) => sl<ImportExportCubit>(),
@@ -80,7 +82,7 @@ class EventsView extends StatelessWidget {
       ),
       body: MultiBlocListener(
         listeners: [
-          BlocListener<EventsBloc, EventsState>(
+          BlocListener<EventsCubit, EventsState>(
             listener: (context, state) {
               if (state is EventsError) {
                 log('Events Error: ${state.message}');
@@ -131,14 +133,14 @@ class EventsView extends StatelessWidget {
                   ),
                 );
                 // Refresh events after import
-                context.read<EventsBloc>().add(const RefreshEvents());
+                context.read<EventsCubit>().refreshEvents();
               } else if (state is ImportPreview) {
                 _showImportPreviewDialog(context, state);
               }
             },
           ),
         ],
-        child: BlocBuilder<EventsBloc, EventsState>(
+        child: BlocBuilder<EventsCubit, EventsState>(
           builder: (context, state) {
             if (state is EventsLoading) {
               return const Center(child: CircularProgressIndicator());
@@ -150,8 +152,7 @@ class EventsView extends StatelessWidget {
             } else if (state is EventsError) {
               return _ErrorView(
                 message: state.message,
-                onRetry:
-                    () => context.read<EventsBloc>().add(const LoadEvents()),
+                onRetry: () => context.read<EventsCubit>().loadEvents(),
               );
             }
             return const SizedBox.shrink();
@@ -171,7 +172,7 @@ class EventsView extends StatelessWidget {
       context: context,
       builder:
           (dialogContext) => BlocProvider.value(
-            value: context.read<EventsBloc>(),
+            value: context.read<EventsCubit>(),
             child: const CreateEventDialog(),
           ),
     );
@@ -224,7 +225,7 @@ class _EventsListView extends StatelessWidget {
   Widget build(BuildContext context) {
     return RefreshIndicator(
       onRefresh: () async {
-        context.read<EventsBloc>().add(const RefreshEvents());
+        context.read<EventsCubit>().refreshEvents();
       },
       child: ListView.builder(
         padding: const EdgeInsets.all(AppConstants.padding),
@@ -267,7 +268,7 @@ class _EmptyEventsView extends StatelessWidget {
                       context: context,
                       builder:
                           (dialogContext) => BlocProvider.value(
-                            value: context.read<EventsBloc>(),
+                            value: context.read<EventsCubit>(),
                             child: const CreateEventDialog(),
                           ),
                     );
