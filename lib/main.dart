@@ -1,11 +1,11 @@
 import 'dart:io';
+import 'package:collections/features/events/pages/events_page.dart';
 import 'package:flutter/material.dart';
 import 'package:sqlite3_flutter_libs/sqlite3_flutter_libs.dart';
 
 import 'utils/size_utils.dart';
 import 'constants/theme.dart';
 import 'core/di/service_locator.dart';
-import 'home_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -34,7 +34,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
-      home: const HomePage(),
+      home: const EventsPage(),
     );
   }
 }
