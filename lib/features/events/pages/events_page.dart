@@ -1,5 +1,4 @@
 import 'dart:developer';
-
 import 'package:collections/features/events/cubit/events_state.dart';
 import 'package:collections/features/import_export/cubit/import_export_cubit.dart';
 import 'package:collections/features/import_export/cubit/import_export_state.dart';
@@ -228,7 +227,7 @@ class _EventsListView extends StatelessWidget {
         context.read<EventsCubit>().refreshEvents();
       },
       child: ListView.builder(
-        padding: const EdgeInsets.all(AppConstants.padding),
+        padding: const EdgeInsets.symmetric(vertical: AppConstants.padding),
         itemCount: events.length,
         itemBuilder: (context, index) {
           return EventCard(event: events[index]);
