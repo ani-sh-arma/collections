@@ -121,7 +121,7 @@ class EventsView extends StatelessWidget {
               } else if (state is ExportSuccess) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(state.message),
+                    content: Text("${state.filePath} ${state.message}"),
                     backgroundColor: Colors.green,
                   ),
                 );
