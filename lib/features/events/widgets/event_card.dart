@@ -139,7 +139,7 @@ class EventCard extends StatelessWidget {
             value: context.read<ImportExportCubit>(),
           ),
         ],
-        child: _EventActionMenu(event: event),
+        child: _EventActionMenu(event: event, parentContext: context),
       ),
     );
   }
@@ -147,8 +147,9 @@ class EventCard extends StatelessWidget {
 
 class _EventActionMenu extends StatelessWidget {
   final Event event;
+  final BuildContext parentContext; // Add parentContext
 
-  const _EventActionMenu({required this.event});
+  const _EventActionMenu({required this.event, required this.parentContext});
 
   @override
   Widget build(BuildContext context) {
@@ -178,8 +179,8 @@ class _EventActionMenu extends StatelessWidget {
             icon: Icons.visibility,
             title: 'View Details',
             onTap: () {
-              Navigator.of(context).pop();
-              Navigator.of(context).push(
+              Navigator.of(context).pop(); // Pop ModalBottomSheet
+              Navigator.of(parentContext).push( // Use parentContext for pushing the new route
                 MaterialPageRoute(
                   builder: (context) => EventDetailPage(eventId: event.id),
                 ),
@@ -213,18 +214,20 @@ class _EventActionMenu extends StatelessWidget {
           _ActionTile(
             icon: Icons.edit,
             title: 'Rename',
-            onTap: () {
-              Navigator.of(context).pop();
-              _showRenameDialog(context);
+            onTap: () async {
+              final eventsCubit = parentContext.read<EventsCubit>(); // Read from parentContext
+              await _showRenameDialog(context, eventsCubit); // Await dialog result
+              Navigator.of(context).pop(); // Pop ModalBottomSheet after dialog is dismissed
             },
           ),
           _ActionTile(
             icon: Icons.delete,
             title: 'Delete',
             textColor: Colors.red,
-            onTap: () {
-              Navigator.of(context).pop();
-              _showDeleteConfirmation(context);
+            onTap: () async {
+              final eventsCubit = parentContext.read<EventsCubit>(); // Read from parentContext
+              await _showDeleteConfirmation(context, eventsCubit); // Await dialog result
+              Navigator.of(context).pop(); // Pop ModalBottomSheet after dialog is dismissed
             },
           ),
           const SizedBox(height: AppConstants.padding),
@@ -233,14 +236,14 @@ class _EventActionMenu extends StatelessWidget {
     );
   }
 
-  void _showRenameDialog(BuildContext context) {
+  Future<void> _showRenameDialog(BuildContext menuContext, EventsCubit eventsCubit) async {
     final controller = TextEditingController(text: event.title);
 
-    showDialog(
-      context: context,
+    await showDialog(
+      context: menuContext, // Use the _EventActionMenu's context
       builder:
           (dialogContext) => BlocProvider.value(
-            value: context.read<EventsCubit>(),
+            value: eventsCubit,
             child: AlertDialog(
               title: const Text('Rename Event'),
               content: TextField(
@@ -254,18 +257,20 @@ class _EventActionMenu extends StatelessWidget {
               ),
               actions: [
                 TextButton(
-                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop(); // Pop AlertDialog
+                  },
                   child: const Text('Cancel'),
                 ),
                 ElevatedButton(
                   onPressed: () {
                     final newTitle = controller.text.trim();
                     if (newTitle.isNotEmpty && newTitle != event.title) {
-                      dialogContext.read<EventsCubit>().updateEvent(
+                      eventsCubit.updateEvent(
                         event.copyWith(title: newTitle),
                       );
                     }
-                    Navigator.of(dialogContext).pop();
+                    Navigator.of(dialogContext).pop(); // Pop AlertDialog
                   },
                   child: const Text('Rename'),
                 ),
@@ -275,24 +280,26 @@ class _EventActionMenu extends StatelessWidget {
     );
   }
 
-  void _showDeleteConfirmation(BuildContext context) {
-    showDialog(
-      context: context,
+  Future<void> _showDeleteConfirmation(BuildContext menuContext, EventsCubit eventsCubit) async {
+    await showDialog(
+      context: menuContext, // Use the _EventActionMenu's context
       builder:
           (dialogContext) => BlocProvider.value(
-            value: context.read<EventsCubit>(),
+            value: eventsCubit,
             child: AlertDialog(
               title: const Text('Delete Event'),
               content: const Text(AppConstants.deleteEventConfirmation),
               actions: [
                 TextButton(
-                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop(); // Pop AlertDialog
+                  },
                   child: const Text('Cancel'),
                 ),
                 ElevatedButton(
                   onPressed: () {
-                    dialogContext.read<EventsCubit>().deleteEvent(event.id);
-                    Navigator.of(dialogContext).pop();
+                    eventsCubit.deleteEvent(event.id);
+                    Navigator.of(dialogContext).pop(); // Pop AlertDialog
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.red,
