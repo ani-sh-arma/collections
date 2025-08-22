@@ -130,7 +130,17 @@ class EventCard extends StatelessWidget {
           top: Radius.circular(AppConstants.borderRadius),
         ),
       ),
-      builder: (context) => _EventActionMenu(event: event),
+      builder: (dialogContext) => MultiBlocProvider(
+        providers: [
+          BlocProvider.value(
+            value: context.read<EventsCubit>(),
+          ),
+          BlocProvider.value(
+            value: context.read<ImportExportCubit>(),
+          ),
+        ],
+        child: _EventActionMenu(event: event),
+      ),
     );
   }
 }
@@ -229,35 +239,38 @@ class _EventActionMenu extends StatelessWidget {
     showDialog(
       context: context,
       builder:
-          (context) => AlertDialog(
-            title: const Text('Rename Event'),
-            content: TextField(
-              controller: controller,
-              decoration: const InputDecoration(
-                labelText: 'Event Title',
-                border: OutlineInputBorder(),
+          (dialogContext) => BlocProvider.value(
+            value: context.read<EventsCubit>(),
+            child: AlertDialog(
+              title: const Text('Rename Event'),
+              content: TextField(
+                controller: controller,
+                decoration: const InputDecoration(
+                  labelText: 'Event Title',
+                  border: OutlineInputBorder(),
+                ),
+                maxLength: AppConstants.maxTitleLength,
+                autofocus: true,
               ),
-              maxLength: AppConstants.maxTitleLength,
-              autofocus: true,
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    final newTitle = controller.text.trim();
+                    if (newTitle.isNotEmpty && newTitle != event.title) {
+                      dialogContext.read<EventsCubit>().updateEvent(
+                        event.copyWith(title: newTitle),
+                      );
+                    }
+                    Navigator.of(dialogContext).pop();
+                  },
+                  child: const Text('Rename'),
+                ),
+              ],
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Cancel'),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  final newTitle = controller.text.trim();
-                  if (newTitle.isNotEmpty && newTitle != event.title) {
-                    context.read<EventsCubit>().updateEvent(
-                      event.copyWith(title: newTitle),
-                    );
-                  }
-                  Navigator.of(context).pop();
-                },
-                child: const Text('Rename'),
-              ),
-            ],
           ),
     );
   }
@@ -266,26 +279,29 @@ class _EventActionMenu extends StatelessWidget {
     showDialog(
       context: context,
       builder:
-          (context) => AlertDialog(
-            title: const Text('Delete Event'),
-            content: const Text(AppConstants.deleteEventConfirmation),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Cancel'),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  context.read<EventsCubit>().deleteEvent(event.id);
-                  Navigator.of(context).pop();
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  foregroundColor: Colors.white,
+          (dialogContext) => BlocProvider.value(
+            value: context.read<EventsCubit>(),
+            child: AlertDialog(
+              title: const Text('Delete Event'),
+              content: const Text(AppConstants.deleteEventConfirmation),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: const Text('Cancel'),
                 ),
-                child: const Text('Delete'),
-              ),
-            ],
+                ElevatedButton(
+                  onPressed: () {
+                    dialogContext.read<EventsCubit>().deleteEvent(event.id);
+                    Navigator.of(dialogContext).pop();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('Delete'),
+                ),
+              ],
+            ),
           ),
     );
   }
