@@ -3,7 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/constants/app_constants.dart';
-import '../bloc/bloc.dart';
+import '../cubit/event_detail_state.dart';
+import '../cubit/event_detail_cubit.dart';
 
 class AddRowDialog extends StatefulWidget {
   const AddRowDialog({super.key});
@@ -25,16 +26,13 @@ class _AddRowDialogState extends State<AddRowDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<EventDetailBloc, EventDetailState>(
+    return BlocListener<EventDetailCubit, EventDetailState>(
       listener: (context, state) {
         if (state is EventDetailLoaded) {
           Navigator.of(context).pop();
         } else if (state is EventDetailError) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.message),
-              backgroundColor: Colors.red,
-            ),
+            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
           );
         }
       },
@@ -53,7 +51,7 @@ class _AddRowDialogState extends State<AddRowDialog> {
                   style: TextStyle(fontWeight: FontWeight.w500),
                 ),
                 const SizedBox(height: AppConstants.padding),
-                
+
                 // Add at end option
                 RadioListTile<bool>(
                   title: const Text('Add at the end'),
@@ -66,7 +64,7 @@ class _AddRowDialogState extends State<AddRowDialog> {
                     });
                   },
                 ),
-                
+
                 // Insert at position option
                 RadioListTile<bool>(
                   title: const Text('Insert at specific position'),
@@ -79,7 +77,7 @@ class _AddRowDialogState extends State<AddRowDialog> {
                     });
                   },
                 ),
-                
+
                 // Position input (only shown when inserting at position)
                 if (!_addAtEnd) ...[
                   const SizedBox(height: AppConstants.padding),
@@ -92,9 +90,7 @@ class _AddRowDialogState extends State<AddRowDialog> {
                       prefixIcon: Icon(Icons.format_list_numbered),
                     ),
                     keyboardType: TextInputType.number,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                    ],
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
                         return 'Please enter a row position';
@@ -112,8 +108,12 @@ class _AddRowDialogState extends State<AddRowDialog> {
                     padding: const EdgeInsets.all(AppConstants.smallPadding),
                     decoration: BoxDecoration(
                       color: Colors.blue.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(AppConstants.smallPadding),
-                      border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
+                      borderRadius: BorderRadius.circular(
+                        AppConstants.smallPadding,
+                      ),
+                      border: Border.all(
+                        color: Colors.blue.withValues(alpha: 0.3),
+                      ),
                     ),
                     child: Row(
                       children: [
@@ -145,19 +145,20 @@ class _AddRowDialogState extends State<AddRowDialog> {
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('Cancel'),
           ),
-          BlocBuilder<EventDetailBloc, EventDetailState>(
+          BlocBuilder<EventDetailCubit, EventDetailState>(
             builder: (context, state) {
               final isLoading = state is EventDetailSaving;
-              
+
               return ElevatedButton(
                 onPressed: isLoading ? null : _addRow,
-                child: isLoading
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('Add Row'),
+                child:
+                    isLoading
+                        ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                        : const Text('Add Row'),
               );
             },
           ),
@@ -169,12 +170,12 @@ class _AddRowDialogState extends State<AddRowDialog> {
   void _addRow() {
     if (_addAtEnd) {
       // Add at the end
-      context.read<EventDetailBloc>().add(const AddRow());
+      context.read<EventDetailCubit>().addRow();
     } else {
       // Insert at specific position
       if (_formKey.currentState?.validate() ?? false) {
         final position = int.parse(_positionController.text);
-        context.read<EventDetailBloc>().add(InsertRowAtPosition(position));
+        context.read<EventDetailCubit>().insertRowAtPosition(position);
       }
     }
   }

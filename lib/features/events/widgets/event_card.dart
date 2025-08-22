@@ -1,3 +1,4 @@
+import 'package:collections/features/import_export/cubit/import_export_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
@@ -5,17 +6,13 @@ import 'package:intl/intl.dart';
 import '../../../core/models/models.dart';
 import '../../../core/utils/gradient_generator.dart';
 import '../../../core/constants/app_constants.dart';
-import '../bloc/bloc.dart';
+import '../cubit/events_cubit.dart';
 import '../../event_detail/pages/event_detail_page.dart';
-import '../../import_export/cubit/cubit.dart';
 
 class EventCard extends StatelessWidget {
   final Event event;
 
-  const EventCard({
-    super.key,
-    required this.event,
-  });
+  const EventCard({super.key, required this.event});
 
   @override
   Widget build(BuildContext context) {
@@ -52,7 +49,9 @@ class EventCard extends StatelessWidget {
                     Expanded(
                       child: Text(
                         event.title,
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        style: Theme.of(
+                          context,
+                        ).textTheme.headlineSmall?.copyWith(
                           color: textColor,
                           fontWeight: FontWeight.bold,
                         ),
@@ -182,7 +181,7 @@ class _EventActionMenu extends StatelessWidget {
             title: 'Make a Copy',
             onTap: () {
               Navigator.of(context).pop();
-              context.read<EventsBloc>().add(CopyEvent(event.id));
+              context.read<EventsCubit>().copyEvent(event.id);
             },
           ),
           _ActionTile(
@@ -190,7 +189,7 @@ class _EventActionMenu extends StatelessWidget {
             title: event.locked ? 'Unlock' : 'Lock',
             onTap: () {
               Navigator.of(context).pop();
-              context.read<EventsBloc>().add(ToggleEventLock(event.id));
+              context.read<EventsCubit>().toggleEventLock(event.id);
             },
           ),
           _ActionTile(
@@ -229,63 +228,65 @@ class _EventActionMenu extends StatelessWidget {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Rename Event'),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(
-            labelText: 'Event Title',
-            border: OutlineInputBorder(),
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Rename Event'),
+            content: TextField(
+              controller: controller,
+              decoration: const InputDecoration(
+                labelText: 'Event Title',
+                border: OutlineInputBorder(),
+              ),
+              maxLength: AppConstants.maxTitleLength,
+              autofocus: true,
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  final newTitle = controller.text.trim();
+                  if (newTitle.isNotEmpty && newTitle != event.title) {
+                    context.read<EventsCubit>().updateEvent(
+                      event.copyWith(title: newTitle),
+                    );
+                  }
+                  Navigator.of(context).pop();
+                },
+                child: const Text('Rename'),
+              ),
+            ],
           ),
-          maxLength: AppConstants.maxTitleLength,
-          autofocus: true,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final newTitle = controller.text.trim();
-              if (newTitle.isNotEmpty && newTitle != event.title) {
-                context.read<EventsBloc>().add(
-                  UpdateEvent(event.copyWith(title: newTitle)),
-                );
-              }
-              Navigator.of(context).pop();
-            },
-            child: const Text('Rename'),
-          ),
-        ],
-      ),
     );
   }
 
   void _showDeleteConfirmation(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Event'),
-        content: const Text(AppConstants.deleteEventConfirmation),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Delete Event'),
+            content: const Text(AppConstants.deleteEventConfirmation),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  context.read<EventsCubit>().deleteEvent(event.id);
+                  Navigator.of(context).pop();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Delete'),
+              ),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () {
-              context.read<EventsBloc>().add(DeleteEvent(event.id));
-              Navigator.of(context).pop();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -307,10 +308,7 @@ class _ActionTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       leading: Icon(icon, color: textColor),
-      title: Text(
-        title,
-        style: TextStyle(color: textColor),
-      ),
+      title: Text(title, style: TextStyle(color: textColor)),
       onTap: onTap,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppConstants.smallPadding),

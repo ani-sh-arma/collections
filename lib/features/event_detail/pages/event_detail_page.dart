@@ -1,16 +1,17 @@
+import 'package:collections/features/import_export/cubit/import_export_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/di/service_locator.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/models/models.dart';
-import '../bloc/bloc.dart';
+import '../cubit/event_detail_state.dart';
+import '../cubit/event_detail_cubit.dart';
 import '../widgets/event_info_section.dart';
 import '../widgets/collection_table.dart';
 import '../widgets/reorderable_collection_table.dart';
 import '../widgets/totals_table.dart';
 import '../widgets/add_row_dialog.dart';
-import '../../import_export/cubit/cubit.dart';
 
 class EventDetailPage extends StatelessWidget {
   final String eventId;
@@ -21,9 +22,8 @@ class EventDetailPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
-        BlocProvider<EventDetailBloc>(
-          create:
-              (context) => sl<EventDetailBloc>()..add(LoadEventDetail(eventId)),
+        BlocProvider<EventDetailCubit>(
+          create: (context) => sl<EventDetailCubit>()..loadEventDetail(eventId),
         ),
         BlocProvider<ImportExportCubit>(
           create: (context) => sl<ImportExportCubit>(),
@@ -48,7 +48,7 @@ class _EventDetailViewState extends State<EventDetailView> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<EventDetailBloc, EventDetailState>(
+    return BlocListener<EventDetailCubit, EventDetailState>(
       listener: (context, state) {
         if (state is EventDetailError) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -63,7 +63,7 @@ class _EventDetailViewState extends State<EventDetailView> {
           );
         }
       },
-      child: BlocBuilder<EventDetailBloc, EventDetailState>(
+      child: BlocBuilder<EventDetailCubit, EventDetailState>(
         builder: (context, state) {
           if (state is EventDetailLoading) {
             return Scaffold(
@@ -92,7 +92,7 @@ class _EventDetailViewState extends State<EventDetailView> {
           // Lock/Unlock toggle
           IconButton(
             onPressed: () {
-              context.read<EventDetailBloc>().add(const ToggleEventLock());
+              context.read<EventDetailCubit>().toggleEventLock();
             },
             icon: Icon(state.isLocked ? Icons.lock : Icons.lock_open),
             tooltip:
@@ -242,8 +242,8 @@ class _EventDetailViewState extends State<EventDetailView> {
             const SizedBox(height: AppConstants.largePadding),
             ElevatedButton(
               onPressed: () {
-                context.read<EventDetailBloc>().add(
-                  LoadEventDetail(widget.eventId),
+                context.read<EventDetailCubit>().loadEventDetail(
+                  widget.eventId,
                 );
               },
               child: const Text('Retry'),
@@ -282,7 +282,7 @@ class _EventDetailViewState extends State<EventDetailView> {
       context: context,
       builder:
           (dialogContext) => BlocProvider.value(
-            value: context.read<EventDetailBloc>(),
+            value: context.read<EventDetailCubit>(),
             child: const AddRowDialog(),
           ),
     );
@@ -314,8 +314,8 @@ class _EventDetailViewState extends State<EventDetailView> {
                 onPressed: () {
                   final newTitle = controller.text.trim();
                   if (newTitle.isNotEmpty && newTitle != event.title) {
-                    context.read<EventDetailBloc>().add(
-                      UpdateEventInfo(event.copyWith(title: newTitle)),
+                    context.read<EventDetailCubit>().updateEventInfo(
+                      event.copyWith(title: newTitle),
                     );
                   }
                   Navigator.of(context).pop();

@@ -3,7 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/models/models.dart';
 import '../../../core/constants/app_constants.dart';
-import '../bloc/bloc.dart';
+import '../cubit/event_detail_state.dart';
+import '../cubit/event_detail_cubit.dart';
 
 class AddColumnDialog extends StatefulWidget {
   const AddColumnDialog({super.key});
@@ -25,7 +26,7 @@ class _AddColumnDialogState extends State<AddColumnDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<EventDetailBloc, EventDetailState>(
+    return BlocListener<EventDetailCubit, EventDetailState>(
       listener: (context, state) {
         if (state is EventDetailLoaded) {
           Navigator.of(context).pop();
@@ -157,7 +158,7 @@ class _AddColumnDialogState extends State<AddColumnDialog> {
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('Cancel'),
           ),
-          BlocBuilder<EventDetailBloc, EventDetailState>(
+          BlocBuilder<EventDetailCubit, EventDetailState>(
             builder: (context, state) {
               final isLoading = state is EventDetailSaving;
 
@@ -182,8 +183,9 @@ class _AddColumnDialogState extends State<AddColumnDialog> {
   void _addColumn() {
     if (_formKey.currentState?.validate() ?? false) {
       final label = _labelController.text.trim();
-      context.read<EventDetailBloc>().add(
-        AddColumn(label: label, type: _selectedType),
+      context.read<EventDetailCubit>().addColumn(
+        label: label,
+        type: _selectedType,
       );
     }
   }

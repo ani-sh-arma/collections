@@ -4,25 +4,16 @@ import 'package:uuid/uuid.dart';
 import '../../../core/models/models.dart';
 import '../../../core/repositories/event_repository.dart';
 import '../../../core/utils/gradient_generator.dart';
-import 'events_event.dart';
 import 'events_state.dart';
 
-class EventsBloc extends Bloc<EventsEvent, EventsState> {
+class EventsCubit extends Cubit<EventsState> {
   final EventRepository _repository;
 
-  EventsBloc({required EventRepository repository})
+  EventsCubit({required EventRepository repository})
       : _repository = repository,
-        super(const EventsInitial()) {
-    on<LoadEvents>(_onLoadEvents);
-    on<CreateEvent>(_onCreateEvent);
-    on<UpdateEvent>(_onUpdateEvent);
-    on<DeleteEvent>(_onDeleteEvent);
-    on<CopyEvent>(_onCopyEvent);
-    on<ToggleEventLock>(_onToggleEventLock);
-    on<RefreshEvents>(_onRefreshEvents);
-  }
+        super(const EventsInitial());
 
-  Future<void> _onLoadEvents(LoadEvents event, Emitter<EventsState> emit) async {
+  Future<void> loadEvents() async {
     try {
       emit(const EventsLoading());
       final events = await _repository.getAllEvents();
@@ -32,12 +23,12 @@ class EventsBloc extends Bloc<EventsEvent, EventsState> {
     }
   }
 
-  Future<void> _onCreateEvent(CreateEvent event, Emitter<EventsState> emit) async {
+  Future<void> createEvent(Event event) async {
     try {
       emit(const EventCreating());
-      
+
       // Generate gradient colors if not provided
-      Event eventToCreate = event.event;
+      Event eventToCreate = event;
       if (eventToCreate.gradientColorA.isEmpty || eventToCreate.gradientColorB.isEmpty) {
         final gradientHex = GradientGenerator.getRandomGradientHex();
         eventToCreate = eventToCreate.copyWith(
@@ -48,55 +39,55 @@ class EventsBloc extends Bloc<EventsEvent, EventsState> {
 
       await _repository.createEventWithDefaults(eventToCreate);
       emit(EventCreated(eventToCreate));
-      
+
       // Reload events to show the new one
-      add(const LoadEvents());
+      await loadEvents();
     } catch (e) {
       emit(EventsError('Failed to create event: ${e.toString()}'));
     }
   }
 
-  Future<void> _onUpdateEvent(UpdateEvent event, Emitter<EventsState> emit) async {
+  Future<void> updateEvent(Event event) async {
     try {
-      emit(EventUpdating(event.event.id));
-      
-      final updatedEvent = event.event.copyWith(updatedAt: DateTime.now());
+      emit(EventUpdating(event.id));
+
+      final updatedEvent = event.copyWith(updatedAt: DateTime.now());
       await _repository.updateEvent(updatedEvent);
       emit(EventUpdated(updatedEvent));
-      
+
       // Reload events to show the updated one
-      add(const LoadEvents());
+      await loadEvents();
     } catch (e) {
       emit(EventsError('Failed to update event: ${e.toString()}'));
     }
   }
 
-  Future<void> _onDeleteEvent(DeleteEvent event, Emitter<EventsState> emit) async {
+  Future<void> deleteEvent(String eventId) async {
     try {
-      emit(EventDeleting(event.eventId));
-      await _repository.deleteEvent(event.eventId);
-      emit(EventDeleted(event.eventId));
-      
+      emit(EventDeleting(eventId));
+      await _repository.deleteEvent(eventId);
+      emit(EventDeleted(eventId));
+
       // Reload events to remove the deleted one
-      add(const LoadEvents());
+      await loadEvents();
     } catch (e) {
       emit(EventsError('Failed to delete event: ${e.toString()}'));
     }
   }
 
-  Future<void> _onCopyEvent(CopyEvent event, Emitter<EventsState> emit) async {
+  Future<void> copyEvent(String eventId) async {
     try {
       emit(const EventCreating());
-      
+
       // Get the original event
-      final originalEvent = await _repository.getEventById(event.eventId);
+      final originalEvent = await _repository.getEventById(eventId);
       if (originalEvent == null) {
         emit(const EventsError('Event not found'));
         return;
       }
 
       // Export the original event data
-      final exportData = await _repository.exportEvents([event.eventId]);
+      final exportData = await _repository.exportEvents([eventId]);
       if (exportData.events.isEmpty) {
         emit(const EventsError('Failed to copy event data'));
         return;
@@ -105,7 +96,7 @@ class EventsBloc extends Bloc<EventsEvent, EventsState> {
       // Create a copy with new ID and modified title
       final originalEventData = exportData.events.first;
       final gradientHex = GradientGenerator.getRandomGradientHex();
-      
+
       final copiedEvent = originalEventData.event.copyWith(
         id: const Uuid().v4(),
         title: '${originalEventData.event.title} (Copy)',
@@ -118,7 +109,7 @@ class EventsBloc extends Bloc<EventsEvent, EventsState> {
 
       // Create the copied event with all its data
       await _repository.createEventWithDefaults(copiedEvent);
-      
+
       // Import the original data structure (columns, rows, cells)
       final modifiedExportData = ExportData(
         events: [
@@ -134,19 +125,19 @@ class EventsBloc extends Bloc<EventsEvent, EventsState> {
 
       await _repository.importEvents(modifiedExportData);
       emit(EventCreated(copiedEvent));
-      
+
       // Reload events to show the new copy
-      add(const LoadEvents());
+      await loadEvents();
     } catch (e) {
       emit(EventsError('Failed to copy event: ${e.toString()}'));
     }
   }
 
-  Future<void> _onToggleEventLock(ToggleEventLock event, Emitter<EventsState> emit) async {
+  Future<void> toggleEventLock(String eventId) async {
     try {
-      emit(EventUpdating(event.eventId));
-      
-      final existingEvent = await _repository.getEventById(event.eventId);
+      emit(EventUpdating(eventId));
+
+      final existingEvent = await _repository.getEventById(eventId);
       if (existingEvent == null) {
         emit(const EventsError('Event not found'));
         return;
@@ -156,18 +147,19 @@ class EventsBloc extends Bloc<EventsEvent, EventsState> {
         locked: !existingEvent.locked,
         updatedAt: DateTime.now(),
       );
-      
+
       await _repository.updateEvent(updatedEvent);
       emit(EventUpdated(updatedEvent));
-      
+
       // Reload events to show the updated lock status
-      add(const LoadEvents());
+      await loadEvents();
     } catch (e) {
       emit(EventsError('Failed to toggle event lock: ${e.toString()}'));
     }
   }
 
-  Future<void> _onRefreshEvents(RefreshEvents event, Emitter<EventsState> emit) async {
-    add(const LoadEvents());
+  Future<void> refreshEvents() async {
+    await loadEvents();
   }
 }
+

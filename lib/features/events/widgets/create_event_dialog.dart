@@ -4,7 +4,8 @@ import 'package:intl/intl.dart';
 
 import '../../../core/models/models.dart';
 import '../../../core/constants/app_constants.dart';
-import '../bloc/bloc.dart';
+import '../cubit/events_cubit.dart';
+import '../cubit/events_state.dart';
 
 class CreateEventDialog extends StatefulWidget {
   const CreateEventDialog({super.key});
@@ -28,16 +29,13 @@ class _CreateEventDialogState extends State<CreateEventDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<EventsBloc, EventsState>(
+    return BlocListener<EventsCubit, EventsState>(
       listener: (context, state) {
         if (state is EventCreated) {
           Navigator.of(context).pop();
         } else if (state is EventsError) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.message),
-              backgroundColor: Colors.red,
-            ),
+            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
           );
         }
       },
@@ -101,19 +99,20 @@ class _CreateEventDialogState extends State<CreateEventDialog> {
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('Cancel'),
           ),
-          BlocBuilder<EventsBloc, EventsState>(
+          BlocBuilder<EventsCubit, EventsState>(
             builder: (context, state) {
               final isCreating = state is EventCreating;
-              
+
               return ElevatedButton(
                 onPressed: isCreating ? null : _createEvent,
-                child: isCreating
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('Create'),
+                child:
+                    isCreating
+                        ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                        : const Text('Create'),
               );
             },
           ),
@@ -129,7 +128,7 @@ class _CreateEventDialogState extends State<CreateEventDialog> {
       firstDate: DateTime(2020),
       lastDate: DateTime(2030),
     );
-    
+
     if (picked != null && picked != _selectedDate) {
       setState(() {
         _selectedDate = picked;
@@ -147,7 +146,7 @@ class _CreateEventDialogState extends State<CreateEventDialog> {
         gradientColorB: '', // Will be generated in the BLoC
       );
 
-      context.read<EventsBloc>().add(CreateEvent(event));
+      context.read<EventsCubit>().createEvent(event);
     }
   }
 }
