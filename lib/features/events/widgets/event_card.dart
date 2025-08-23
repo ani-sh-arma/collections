@@ -220,18 +220,13 @@ class _EventActionMenu extends StatelessWidget {
             },
           ),
           _ActionTile(
-            icon: Icons.edit,
-            title: 'Rename',
+            icon: Icons.edit_note, // Using a different icon for "Edit Details"
+            title: 'Edit Details',
             onTap: () async {
-              final eventsCubit =
-                  parentContext.read<EventsCubit>(); // Read from parentContext
-              await _showRenameDialog(
-                context,
-                eventsCubit,
-              ); // Await dialog result
-              Navigator.of(
-                context,
-              ).pop(); // Pop ModalBottomSheet after dialog is dismissed
+              final eventsCubit = parentContext.read<EventsCubit>();
+              await _showEditDetailsDialog(context, eventsCubit).then((_) {
+                Navigator.of(context).pop();
+              });
             },
           ),
           _ActionTile(
@@ -253,51 +248,6 @@ class _EventActionMenu extends StatelessWidget {
           const SizedBox(height: AppConstants.padding),
         ],
       ),
-    );
-  }
-
-  Future<void> _showRenameDialog(
-    BuildContext menuContext,
-    EventsCubit eventsCubit,
-  ) async {
-    final controller = TextEditingController(text: event.title);
-
-    await showDialog(
-      context: menuContext, // Use the _EventActionMenu's context
-      builder:
-          (dialogContext) => BlocProvider.value(
-            value: eventsCubit,
-            child: AlertDialog(
-              title: const Text('Rename Event'),
-              content: TextField(
-                controller: controller,
-                decoration: const InputDecoration(
-                  labelText: 'Event Title',
-                  border: OutlineInputBorder(),
-                ),
-                maxLength: AppConstants.maxTitleLength,
-                autofocus: true,
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(dialogContext).pop(); // Pop AlertDialog
-                  },
-                  child: const Text('Cancel'),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    final newTitle = controller.text.trim();
-                    if (newTitle.isNotEmpty && newTitle != event.title) {
-                      eventsCubit.updateEvent(event.copyWith(title: newTitle));
-                    }
-                    Navigator.of(dialogContext).pop(); // Pop AlertDialog
-                  },
-                  child: const Text('Rename'),
-                ),
-              ],
-            ),
-          ),
     );
   }
 
@@ -334,6 +284,107 @@ class _EventActionMenu extends StatelessWidget {
               ],
             ),
           ),
+    );
+  }
+
+  Future<void> _showEditDetailsDialog(
+    BuildContext menuContext,
+    EventsCubit eventsCubit,
+  ) async {
+    final titleController = TextEditingController(text: event.title);
+    final descriptionController = TextEditingController(
+      text: event.description,
+    );
+    DateTime tempSelectedDate = event.date;
+
+    await showDialog(
+      context: menuContext,
+      builder: (dialogContext) {
+        return BlocProvider.value(
+          value: eventsCubit,
+          child: StatefulBuilder(
+            builder: (BuildContext context, StateSetter setState) {
+              return AlertDialog(
+                title: const Text('Edit Event Details'),
+                content: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextField(
+                        controller: titleController,
+                        decoration: const InputDecoration(
+                          labelText: 'Event Title',
+                          border: OutlineInputBorder(),
+                        ),
+                        maxLength: AppConstants.maxTitleLength,
+                      ),
+                      const SizedBox(height: AppConstants.padding),
+                      TextField(
+                        controller: descriptionController,
+                        decoration: const InputDecoration(
+                          labelText: 'Event Description',
+                          border: OutlineInputBorder(),
+                        ),
+                        maxLines: 3,
+                        keyboardType: TextInputType.multiline,
+                      ),
+                      const SizedBox(height: AppConstants.padding),
+                      ListTile(
+                        title: Text(
+                          'Event Date: ${DateFormat('MMM dd, yyyy').format(tempSelectedDate)}',
+                        ),
+                        trailing: const Icon(Icons.calendar_today),
+                        onTap: () async {
+                          final DateTime? picked = await showDatePicker(
+                            context: context,
+                            initialDate: tempSelectedDate,
+                            firstDate: DateTime(2000),
+                            lastDate: DateTime(2101),
+                          );
+                          if (picked != null && picked != tempSelectedDate) {
+                            setState(() {
+                              tempSelectedDate = picked;
+                            });
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(dialogContext).pop();
+                    },
+                    child: const Text('Cancel'),
+                  ),
+                  ElevatedButton(
+                    onPressed: () {
+                      final newTitle = titleController.text.trim();
+                      final newDescription = descriptionController.text.trim();
+
+                      if (newTitle.isNotEmpty &&
+                          (newTitle != event.title ||
+                              newDescription != event.description ||
+                              tempSelectedDate != event.date)) {
+                        eventsCubit.updateEvent(
+                          event.copyWith(
+                            title: newTitle,
+                            description: newDescription,
+                            date: tempSelectedDate,
+                          ),
+                        );
+                      }
+                      Navigator.of(dialogContext).pop();
+                    },
+                    child: const Text('Save'),
+                  ),
+                ],
+              );
+            },
+          ),
+        );
+      },
     );
   }
 }
