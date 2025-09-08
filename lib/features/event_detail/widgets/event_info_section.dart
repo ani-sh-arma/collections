@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/models/models.dart';
-import '../../../core/constants/app_constants.dart';
-import '../../../core/utils/gradient_generator.dart';
+import '../../../constants/app_constants.dart';
+import '../../../utils/gradient_generator.dart';
 
 class EventInfoSection extends StatelessWidget {
   final Event event;
@@ -19,7 +19,7 @@ class EventInfoSection extends StatelessWidget {
       event.gradientColorA,
       event.gradientColorB,
     );
-    
+
     final textColor = GradientGenerator.getTextColorForGradient(
       event.gradientColorA,
       event.gradientColorB,

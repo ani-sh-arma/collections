@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../core/constants/app_constants.dart';
+import '../../../constants/app_constants.dart';
 import '../cubit/event_detail_state.dart';
 import '../cubit/event_detail_cubit.dart';
 

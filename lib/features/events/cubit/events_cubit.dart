@@ -3,7 +3,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../../core/models/models.dart';
 import '../../../core/repositories/event_repository.dart';
-import '../../../core/utils/gradient_generator.dart';
+import '../../../utils/gradient_generator.dart';
 import 'events_state.dart';
 
 class EventsCubit extends Cubit<EventsState> {

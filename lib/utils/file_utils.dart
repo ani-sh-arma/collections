@@ -5,7 +5,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:intl/intl.dart';
 
-import '../models/models.dart';
+import '../core/models/models.dart';
 
 class FileUtils {
   static const String _backupFolderName = 'backups';

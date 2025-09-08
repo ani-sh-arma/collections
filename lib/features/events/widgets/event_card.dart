@@ -4,8 +4,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/models/models.dart';
-import '../../../core/utils/gradient_generator.dart';
-import '../../../core/constants/app_constants.dart';
+import '../../../utils/gradient_generator.dart';
+import '../../../constants/app_constants.dart';
 import '../cubit/events_cubit.dart';
 import '../../event_detail/pages/event_detail_page.dart';
 

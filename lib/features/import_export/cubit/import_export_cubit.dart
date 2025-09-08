@@ -2,8 +2,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/models/models.dart';
 import '../../../core/repositories/event_repository.dart';
-import '../../../core/utils/file_utils.dart';
-import '../../../core/constants/app_constants.dart';
+import '../../../utils/file_utils.dart';
+import '../../../constants/app_constants.dart';
 import 'import_export_state.dart';
 
 class ImportExportCubit extends Cubit<ImportExportState> {
@@ -17,7 +17,7 @@ class ImportExportCubit extends Cubit<ImportExportState> {
   Future<void> exportAllEvents() async {
     try {
       emit(const ImportExportLoading('Exporting all events'));
-      
+
       final events = await _repository.getAllEvents();
       if (events.isEmpty) {
         emit(const ImportExportError('No events to export'));
@@ -26,12 +26,12 @@ class ImportExportCubit extends Cubit<ImportExportState> {
 
       final eventIds = events.map((e) => e.id).toList();
       final exportData = await _repository.exportEvents(eventIds);
-      
+
       await FileUtils.exportAndShare(exportData);
-      
+
       // Also create a local backup
       await FileUtils.createBackup(exportData);
-      
+
       emit(ExportSuccess(
         'Successfully exported ${events.length} event(s)',
       ));
@@ -44,24 +44,24 @@ class ImportExportCubit extends Cubit<ImportExportState> {
   Future<void> exportEvents(List<String> eventIds) async {
     try {
       emit(const ImportExportLoading('Exporting selected events'));
-      
+
       if (eventIds.isEmpty) {
         emit(const ImportExportError('No events selected for export'));
         return;
       }
 
       final exportData = await _repository.exportEvents(eventIds);
-      
+
       if (exportData.events.isEmpty) {
         emit(const ImportExportError('No valid events found to export'));
         return;
       }
-      
+
       await FileUtils.exportAndShare(exportData);
-      
+
       // Also create a local backup
       await FileUtils.createBackup(exportData);
-      
+
       emit(ExportSuccess(
         'Successfully exported ${exportData.events.length} event(s)',
       ));
@@ -79,9 +79,9 @@ class ImportExportCubit extends Cubit<ImportExportState> {
   Future<void> pickFileForImport() async {
     try {
       emit(const ImportExportLoading('Loading file'));
-      
+
       final exportData = await FileUtils.pickAndImportFile();
-      
+
       if (exportData == null) {
         emit(const ImportExportInitial()); // User cancelled
         return;
@@ -95,7 +95,7 @@ class ImportExportCubit extends Cubit<ImportExportState> {
 
       // Generate preview
       final preview = FileUtils.getExportPreview(exportData);
-      
+
       emit(ImportPreview(
         exportData: exportData,
         preview: preview,
@@ -109,9 +109,9 @@ class ImportExportCubit extends Cubit<ImportExportState> {
   Future<void> confirmImport(ExportData exportData) async {
     try {
       emit(const ImportExportLoading('Importing events'));
-      
+
       final importedEventIds = await _repository.importEvents(exportData);
-      
+
       if (importedEventIds.isEmpty) {
         emit(const ImportExportError('No events were imported'));
         return;
@@ -135,7 +135,7 @@ class ImportExportCubit extends Cubit<ImportExportState> {
   Future<void> createBackup() async {
     try {
       emit(const ImportExportLoading('Creating backup'));
-      
+
       final events = await _repository.getAllEvents();
       if (events.isEmpty) {
         emit(const ImportExportError('No data to backup'));
@@ -144,12 +144,12 @@ class ImportExportCubit extends Cubit<ImportExportState> {
 
       final eventIds = events.map((e) => e.id).toList();
       final exportData = await _repository.exportEvents(eventIds);
-      
+
       final backupFile = await FileUtils.createBackup(exportData);
-      
+
       // Clean up old backups
       await FileUtils.cleanupOldBackups(keepCount: AppConstants.maxBackupFiles);
-      
+
       emit(ExportSuccess(
         'Backup created successfully',
         filePath: backupFile.path,
@@ -163,9 +163,9 @@ class ImportExportCubit extends Cubit<ImportExportState> {
   Future<void> validateImportFile(String filePath) async {
     try {
       emit(const ImportExportLoading('Validating file'));
-      
+
       final isValid = await FileUtils.validateExportFile(filePath);
-      
+
       if (!isValid) {
         emit(FileValidationError(
           'The selected file is not a valid Collections export file',

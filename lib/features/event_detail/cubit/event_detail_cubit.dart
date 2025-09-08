@@ -5,8 +5,8 @@ import 'package:uuid/uuid.dart';
 
 import '../../../core/models/models.dart';
 import '../../../core/repositories/event_repository.dart';
-import '../../../core/utils/debouncer.dart';
-import '../../../core/constants/app_constants.dart';
+import '../../../utils/debouncer.dart';
+import '../../../constants/app_constants.dart';
 import 'event_detail_state.dart';
 
 class EventDetailCubit extends Cubit<EventDetailState> {

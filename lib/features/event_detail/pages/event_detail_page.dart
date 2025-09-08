@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/di/service_locator.dart';
-import '../../../core/constants/app_constants.dart';
+import '../../../constants/app_constants.dart';
 import '../cubit/event_detail_state.dart';
 import '../cubit/event_detail_cubit.dart';
 import '../widgets/event_info_section.dart';
@@ -84,103 +84,108 @@ class _EventDetailViewState extends State<EventDetailView> {
   }
 
   Widget _buildLoadedView(BuildContext context, EventDetailLoaded state) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(state.event.title),
-        actions: [
-          IconButton(
-            onPressed: () {
-              context.read<EventDetailCubit>().toggleEventLock();
-            },
-            icon: Icon(state.isLocked ? Icons.lock : Icons.lock_open),
-            tooltip:
-                state.isLocked
-                    ? AppConstants.unlockTooltip
-                    : AppConstants.lockTooltip,
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Event Info Section
-          EventInfoSection(event: state.event),
+    return RefreshIndicator(
+      onRefresh: () async {
+        await context.read<EventDetailCubit>().loadEventDetail(widget.eventId);
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(state.event.title),
+          actions: [
+            IconButton(
+              onPressed: () {
+                context.read<EventDetailCubit>().toggleEventLock();
+              },
+              icon: Icon(state.isLocked ? Icons.lock : Icons.lock_open),
+              tooltip:
+                  state.isLocked
+                      ? AppConstants.unlockTooltip
+                      : AppConstants.lockTooltip,
+            ),
+          ],
+        ),
+        body: Column(
+          children: [
+            // Event Info Section
+            EventInfoSection(event: state.event),
 
-          // Collection Table
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(AppConstants.padding),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Collection Table Title with Reorder Toggle
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(left: 10.0),
-                        child: Text(
-                          'Collection Data',
-                          style: Theme.of(context).textTheme.titleLarge
-                              ?.copyWith(fontWeight: FontWeight.bold),
+            // Collection Table
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(AppConstants.padding),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Collection Table Title with Reorder Toggle
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(left: 10.0),
+                          child: Text(
+                            'Collection Data',
+                            style: Theme.of(context).textTheme.titleLarge
+                                ?.copyWith(fontWeight: FontWeight.bold),
+                          ),
                         ),
-                      ),
-                      if (!state.isLocked)
-                        Row(
-                          children: [
-                            Text(
-                              'Reorder Mode',
-                              style: Theme.of(context).textTheme.bodySmall,
-                            ),
-                            const SizedBox(width: 8),
-                            Switch(
-                              value: _isReorderMode,
-                              onChanged: (value) {
-                                setState(() {
-                                  _isReorderMode = value;
-                                });
-                              },
-                            ),
-                          ],
+                        if (!state.isLocked)
+                          Row(
+                            children: [
+                              Text(
+                                'Reorder Mode',
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                              const SizedBox(width: 8),
+                              Switch(
+                                value: _isReorderMode,
+                                onChanged: (value) {
+                                  setState(() {
+                                    _isReorderMode = value;
+                                  });
+                                },
+                              ),
+                            ],
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: AppConstants.padding),
+
+                    // Collection Table (switches between normal and reorderable)
+                    _isReorderMode && !state.isLocked
+                        ? ReorderableCollectionTable(
+                          event: state.event,
+                          columns: state.sortedColumns,
+                          rows: state.sortedRows,
+                          cells: state.cells,
+                          isLocked: state.isLocked,
+                        )
+                        : CollectionTable(
+                          event: state.event,
+                          columns: state.sortedColumns,
+                          rows: state.sortedRows,
+                          cells: state.cells,
+                          isLocked: state.isLocked,
                         ),
-                    ],
-                  ),
-                  const SizedBox(height: AppConstants.padding),
 
-                  // Collection Table (switches between normal and reorderable)
-                  _isReorderMode && !state.isLocked
-                      ? ReorderableCollectionTable(
-                        event: state.event,
-                        columns: state.sortedColumns,
-                        rows: state.sortedRows,
-                        cells: state.cells,
-                        isLocked: state.isLocked,
-                      )
-                      : CollectionTable(
-                        event: state.event,
-                        columns: state.sortedColumns,
-                        rows: state.sortedRows,
-                        cells: state.cells,
-                        isLocked: state.isLocked,
-                      ),
+                    Divider(),
 
-                  Divider(),
-
-                  // Totals Table
-                  TotalsTable(totals: state.totals),
-                ],
+                    // Totals Table
+                    TotalsTable(totals: state.totals),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
+        floatingActionButton:
+            state.isLocked
+                ? null
+                : FloatingActionButton(
+                  onPressed: () => _showAddRowDialog(context),
+                  tooltip: 'Insert Row',
+                  child: const Icon(Icons.add),
+                ),
       ),
-      floatingActionButton:
-          state.isLocked
-              ? null
-              : FloatingActionButton(
-                onPressed: () => _showAddRowDialog(context),
-                tooltip: 'Insert Row',
-                child: const Icon(Icons.add),
-              ),
     );
   }
 
