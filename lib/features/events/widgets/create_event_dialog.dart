@@ -29,94 +29,146 @@ class _CreateEventDialogState extends State<CreateEventDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return BlocListener<EventsCubit, EventsState>(
       listener: (context, state) {
         if (state is EventCreated) {
           Navigator.of(context).pop();
         } else if (state is EventsError) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(state.message)));
         }
       },
-      child: AlertDialog(
-        title: const Text('Create New Event'),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: Form(
-            key: _formKey,
+      child: SafeArea(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
             child: Column(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                TextFormField(
-                  controller: _titleController,
-                  decoration: const InputDecoration(
-                    labelText: 'Event Title *',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.event),
-                  ),
-                  maxLength: AppConstants.maxTitleLength,
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Please enter an event title';
-                    }
-                    return null;
-                  },
-                  autofocus: true,
-                ),
-                const SizedBox(height: AppConstants.padding),
-                TextFormField(
-                  controller: _descriptionController,
-                  decoration: const InputDecoration(
-                    labelText: 'Description (Optional)',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.description),
-                  ),
-                  maxLength: AppConstants.maxDescriptionLength,
-                  maxLines: 3,
-                ),
-                const SizedBox(height: AppConstants.padding),
-                InkWell(
-                  onTap: _selectDate,
-                  child: InputDecorator(
-                    decoration: const InputDecoration(
-                      labelText: 'Event Date',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.calendar_today),
-                    ),
-                    child: Text(
-                      DateFormat('MMM dd, yyyy').format(_selectedDate),
-                      style: Theme.of(context).textTheme.bodyLarge,
+                // ---- Drag Handle ----
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.onSurface.withOpacity(0.25),
+                      borderRadius: BorderRadius.circular(20),
                     ),
                   ),
+                ),
+
+                // ---- Header ----
+                Text(
+                  "Create Event",
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // ---- Form ----
+                Form(
+                  key: _formKey,
+                  child: Column(
+                    children: [
+                      // Title
+                      TextFormField(
+                        controller: _titleController,
+                        decoration: const InputDecoration(
+                          labelText: 'Event Title *',
+                          prefixIcon: Icon(Icons.event),
+                        ),
+                        maxLength: AppConstants.maxTitleLength,
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Please enter an event title';
+                          }
+                          return null;
+                        },
+                        autofocus: true,
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Description
+                      TextFormField(
+                        controller: _descriptionController,
+                        decoration: const InputDecoration(
+                          labelText: 'Description (Optional)',
+                          prefixIcon: Icon(Icons.description),
+                        ),
+                        maxLength: AppConstants.maxDescriptionLength,
+                        maxLines: 3,
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Date picker field
+                      InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: _selectDate,
+                        child: InputDecorator(
+                          decoration: const InputDecoration(
+                            labelText: 'Event Date',
+                            prefixIcon: Icon(Icons.calendar_today),
+                          ),
+                          child: Text(
+                            DateFormat('MMM dd, yyyy').format(_selectedDate),
+                            style: theme.textTheme.bodyLarge,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // ---- Action Buttons ----
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: const Text('Cancel'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: BlocBuilder<EventsCubit, EventsState>(
+                        builder: (context, state) {
+                          final isCreating = state is EventCreating;
+
+                          return FilledButton(
+                            onPressed: isCreating ? null : _createEvent,
+                            child:
+                                isCreating
+                                    ? const SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                    : const Text('Create'),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          BlocBuilder<EventsCubit, EventsState>(
-            builder: (context, state) {
-              final isCreating = state is EventCreating;
-
-              return ElevatedButton(
-                onPressed: isCreating ? null : _createEvent,
-                child:
-                    isCreating
-                        ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                        : const Text('Create'),
-              );
-            },
-          ),
-        ],
       ),
     );
   }
@@ -142,8 +194,8 @@ class _CreateEventDialogState extends State<CreateEventDialog> {
         title: _titleController.text.trim(),
         description: _descriptionController.text.trim(),
         date: _selectedDate,
-        gradientColorA: '', // Will be generated in the BLoC
-        gradientColorB: '', // Will be generated in the BLoC
+        gradientColorA: '',
+        gradientColorB: '',
       );
 
       context.read<EventsCubit>().createEvent(event);

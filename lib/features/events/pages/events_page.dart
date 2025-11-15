@@ -43,7 +43,7 @@ class EventsView extends StatelessWidget {
           // Import button
           IconButton(
             onPressed: () => _showImportDialog(context),
-            icon: const Icon(Icons.file_upload),
+            icon: const Icon(Icons.file_download),
             tooltip: 'Import Events',
           ),
           // More options menu
@@ -54,7 +54,7 @@ class EventsView extends StatelessWidget {
                   const PopupMenuItem(
                     value: 'export_all',
                     child: ListTile(
-                      leading: Icon(Icons.file_download),
+                      leading: Icon(Icons.file_upload),
                       title: Text('Export All Events'),
                       contentPadding: EdgeInsets.zero,
                     ),
@@ -159,21 +159,10 @@ class EventsView extends StatelessWidget {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _showCreateEventDialog(context),
+        onPressed: () => showCreateEventDialog(context),
         tooltip: 'Add Event',
         child: const Icon(Icons.add),
       ),
-    );
-  }
-
-  void _showCreateEventDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder:
-          (dialogContext) => BlocProvider.value(
-            value: context.read<EventsCubit>(),
-            child: const CreateEventDialog(),
-          ),
     );
   }
 
@@ -206,7 +195,6 @@ class EventsView extends StatelessWidget {
         importExportCubit.createBackup();
         break;
       case 'settings':
-        // TODO: Navigate to settings page
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Settings coming soon!')));
@@ -215,8 +203,40 @@ class EventsView extends StatelessWidget {
   }
 }
 
+void showCreateEventDialog(BuildContext context) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder:
+        (dialogContext) => BlocProvider.value(
+          value: context.read<EventsCubit>(),
+          child: DraggableScrollableSheet(
+            expand: false,
+            initialChildSize: 0.8, // Half screen initially
+            minChildSize: 0.3, // When dragged down
+            maxChildSize: 0.9, // FULL SCREEN (important)
+            builder: (context, scrollController) {
+              return Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(24),
+                  ),
+                ),
+                child: SingleChildScrollView(
+                  controller: scrollController,
+                  child: const CreateEventDialog(),
+                ),
+              );
+            },
+          ),
+        ),
+  );
+}
+
 class _EventsListView extends StatelessWidget {
-  final List<dynamic> events; // Using dynamic to avoid import issues for now
+  final List<dynamic> events;
 
   const _EventsListView({required this.events});
 
@@ -259,16 +279,7 @@ class _EmptyEventsView extends StatelessWidget {
           Builder(
             builder:
                 (context) => ElevatedButton.icon(
-                  onPressed: () {
-                    showDialog(
-                      context: context,
-                      builder:
-                          (dialogContext) => BlocProvider.value(
-                            value: context.read<EventsCubit>(),
-                            child: const CreateEventDialog(),
-                          ),
-                    );
-                  },
+                  onPressed: () => showCreateEventDialog(context),
                   icon: const Icon(Icons.add),
                   label: const Text('Create Your First Event'),
                 ),

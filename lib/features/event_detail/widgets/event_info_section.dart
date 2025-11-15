@@ -1,4 +1,6 @@
+import 'package:collections/features/event_detail/cubit/event_detail_cubit.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/models/models.dart';
@@ -8,10 +10,7 @@ import '../../../utils/gradient_generator.dart';
 class EventInfoSection extends StatelessWidget {
   final Event event;
 
-  const EventInfoSection({
-    super.key,
-    required this.event,
-  });
+  const EventInfoSection({super.key, required this.event});
 
   @override
   Widget build(BuildContext context) {
@@ -26,10 +25,9 @@ class EventInfoSection extends StatelessWidget {
     );
 
     return Container(
+      padding: EdgeInsets.only(top: 40),
       width: double.infinity,
-      decoration: BoxDecoration(
-        gradient: gradient,
-      ),
+      decoration: BoxDecoration(gradient: gradient),
       child: Padding(
         padding: const EdgeInsets.all(AppConstants.padding),
         child: Column(
@@ -38,25 +36,41 @@ class EventInfoSection extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: Text(
-                    event.title,
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      color: textColor,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+                  child: Row(
+                    children: [
+                      InkWell(
+                        onTap: () => Navigator.of(context).pop(),
+                        child: Icon(Icons.arrow_back),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        event.title,
+                        style: Theme.of(
+                          context,
+                        ).textTheme.headlineSmall?.copyWith(
+                          color: textColor,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ),
                 ),
-                if (event.locked)
-                  Container(
+                InkWell(
+                  onTap: () {
+                    context.read<EventDetailCubit>().toggleEventLock();
+                  },
+                  child: Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: AppConstants.smallPadding,
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
                       color: textColor.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(AppConstants.smallPadding),
+                      borderRadius: BorderRadius.circular(
+                        AppConstants.smallPadding,
+                      ),
                       border: Border.all(
                         color: textColor.withValues(alpha: 0.3),
                       ),
@@ -65,14 +79,16 @@ class EventInfoSection extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          Icons.lock,
+                          event.locked ? Icons.lock : Icons.lock_open,
                           color: textColor,
                           size: 16,
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          'Locked',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          event.locked ? 'Locked' : 'Unlocked',
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodySmall?.copyWith(
                             color: textColor,
                             fontWeight: FontWeight.w500,
                           ),
@@ -80,6 +96,7 @@ class EventInfoSection extends StatelessWidget {
                       ],
                     ),
                   ),
+                ),
               ],
             ),
             const SizedBox(height: AppConstants.smallPadding),
@@ -130,10 +147,10 @@ class EventInfoSection extends StatelessWidget {
                 padding: const EdgeInsets.all(AppConstants.smallPadding),
                 decoration: BoxDecoration(
                   color: textColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(AppConstants.smallPadding),
-                  border: Border.all(
-                    color: textColor.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(
+                    AppConstants.smallPadding,
                   ),
+                  border: Border.all(color: textColor.withValues(alpha: 0.2)),
                 ),
                 child: Row(
                   children: [

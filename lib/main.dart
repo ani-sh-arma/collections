@@ -10,14 +10,11 @@ import 'core/di/service_locator.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize SQLite on Android
   if (Platform.isAndroid) {
     await applyWorkaroundToOpenSqlite3OnOldAndroidVersions();
   }
 
-  // Setup dependency injection
   await setupServiceLocator();
-
   runApp(const MyApp());
 }
 
@@ -30,7 +27,7 @@ class MyApp extends StatelessWidget {
     sizeUtils.init(context);
 
     return MaterialApp(
-      title: 'Create Flutter App',
+      title: 'Collections',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,

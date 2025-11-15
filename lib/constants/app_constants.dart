@@ -1,8 +1,8 @@
 class AppConstants {
   // App Information
   static const String appName = 'Collections';
-  static const String appDescription = 'Chanda collection app for cultural events';
-  static const String appVersion = '1.0.0';
+  static const String appDescription =
+      'Chanda collection app for cultural events';
 
   // Database
   static const String databaseName = 'collections.db';
@@ -50,12 +50,18 @@ class AppConstants {
   static const String grandTotalLabel = 'Total';
 
   // Error Messages
-  static const String genericErrorMessage = 'Something went wrong. Please try again.';
-  static const String networkErrorMessage = 'Please check your internet connection.';
-  static const String importErrorMessage = 'Failed to import file. Please check the file format.';
-  static const String exportErrorMessage = 'Failed to export data. Please try again.';
-  static const String saveErrorMessage = 'Failed to save changes. Please try again.';
-  static const String deleteErrorMessage = 'Failed to delete item. Please try again.';
+  static const String genericErrorMessage =
+      'Something went wrong. Please try again.';
+  static const String networkErrorMessage =
+      'Please check your internet connection.';
+  static const String importErrorMessage =
+      'Failed to import file. Please check the file format.';
+  static const String exportErrorMessage =
+      'Failed to export data. Please try again.';
+  static const String saveErrorMessage =
+      'Failed to save changes. Please try again.';
+  static const String deleteErrorMessage =
+      'Failed to delete item. Please try again.';
 
   // Success Messages
   static const String saveSuccessMessage = 'Changes saved successfully.';
@@ -64,10 +70,14 @@ class AppConstants {
   static const String deleteSuccessMessage = 'Item deleted successfully.';
 
   // Confirmation Messages
-  static const String deleteEventConfirmation = 'Are you sure you want to delete this event? This action cannot be undone.';
-  static const String deleteRowConfirmation = 'Are you sure you want to delete this row?';
-  static const String deleteColumnConfirmation = 'Are you sure you want to delete this column?';
-  static const String clearAllDataConfirmation = 'Are you sure you want to clear all data? This action cannot be undone.';
+  static const String deleteEventConfirmation =
+      'Are you sure you want to delete this event? This action cannot be undone.';
+  static const String deleteRowConfirmation =
+      'Are you sure you want to delete this row?';
+  static const String deleteColumnConfirmation =
+      'Are you sure you want to delete this column?';
+  static const String clearAllDataConfirmation =
+      'Are you sure you want to clear all data? This action cannot be undone.';
 
   // Validation
   static const int maxTitleLength = 100;
@@ -88,12 +98,15 @@ class AppConstants {
   // Lock/Unlock
   static const String lockTooltip = 'Lock editing';
   static const String unlockTooltip = 'Unlock editing';
-  static const String lockedMessage = 'This event is locked. Tap the lock icon to enable editing.';
+  static const String lockedMessage =
+      'This event is locked. Tap the lock icon to enable editing.';
 
   // Empty States
-  static const String noEventsMessage = 'No events yet. Tap the + button to create your first event.';
+  static const String noEventsMessage =
+      'No events yet. \nTap the + button to create your first event.';
   static const String noDataMessage = 'No data available.';
-  static const String emptyTableMessage = 'Start adding data to your collection table.';
+  static const String emptyTableMessage =
+      'Start adding data to your collection table.';
 
   // Loading States
   static const String loadingMessage = 'Loading...';

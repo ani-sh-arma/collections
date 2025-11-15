@@ -89,21 +89,6 @@ class _EventDetailViewState extends State<EventDetailView> {
         await context.read<EventDetailCubit>().loadEventDetail(widget.eventId);
       },
       child: Scaffold(
-        appBar: AppBar(
-          title: Text(state.event.title),
-          actions: [
-            IconButton(
-              onPressed: () {
-                context.read<EventDetailCubit>().toggleEventLock();
-              },
-              icon: Icon(state.isLocked ? Icons.lock : Icons.lock_open),
-              tooltip:
-                  state.isLocked
-                      ? AppConstants.unlockTooltip
-                      : AppConstants.lockTooltip,
-            ),
-          ],
-        ),
         body: Column(
           children: [
             // Event Info Section

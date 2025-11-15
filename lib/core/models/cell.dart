@@ -50,27 +50,15 @@ class Cell {
 
   // Helper methods to set values with type safety
   Cell withTextValue(String value) {
-    return copyWith(
-      valueText: value,
-      valueNumber: null,
-      valueBool: null,
-    );
+    return copyWith(valueText: value, valueNumber: null, valueBool: null);
   }
 
   Cell withNumberValue(double value) {
-    return copyWith(
-      valueText: null,
-      valueNumber: value,
-      valueBool: null,
-    );
+    return copyWith(valueText: null, valueNumber: value, valueBool: null);
   }
 
   Cell withBoolValue(bool value) {
-    return copyWith(
-      valueText: null,
-      valueNumber: null,
-      valueBool: value,
-    );
+    return copyWith(valueText: null, valueNumber: null, valueBool: value);
   }
 
   Map<String, dynamic> toJson() {
