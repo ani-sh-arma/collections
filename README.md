@@ -2,6 +2,7 @@
 - [ ] Lock/ unlock editing of events is not working and he event details page doesn't even have the toggle for it
 - [ ] Totals data in the event details page is not being updated instantly as it should be. It still misses to calculate out of no where then i have to refresh the page. I want it completely smooth the moment i edit any cell the totals should be recalculated and updated.
 - [ ] Making sure all the other features work properly
+- [ ] Change the current primary theme color from yellow to something with cooler tone
 
 
 
