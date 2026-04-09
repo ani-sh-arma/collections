@@ -5,7 +5,6 @@ import 'package:intl/intl.dart';
 
 import '../../../core/models/models.dart';
 import '../../../constants/app_constants.dart';
-import '../../../constants/colors.dart';
 import '../../../utils/gradient_generator.dart';
 
 class EventInfoSection extends StatelessWidget {

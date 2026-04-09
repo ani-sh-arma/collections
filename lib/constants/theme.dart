@@ -109,7 +109,7 @@ abstract final class AppTheme {
         color: AppColors.textMuted,
       ),
     ),
-    cardTheme: CardTheme(
+    cardTheme: CardThemeData(
       color: AppColors.bgCard,
       elevation: 0,
       margin: EdgeInsets.zero,
@@ -243,7 +243,7 @@ abstract final class AppTheme {
       ),
       textStyle: const TextStyle(color: _textPrimary, fontSize: 14),
     ),
-    dialogTheme: DialogTheme(
+    dialogTheme: DialogThemeData(
       backgroundColor: AppColors.bgSurface,
       surfaceTintColor: AppColors.transparent,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),

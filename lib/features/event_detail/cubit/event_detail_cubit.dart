@@ -24,10 +24,6 @@ class EventDetailCubit extends Cubit<EventDetailState> {
       : _repository = repository,
         super(const EventDetailInitial());
 
-  @override
-  Future<void> close() {
-    return super.close();
-  }
 
   /// Initial full load — shows a loading indicator and fetches all data.
   Future<void> loadEventDetail(String eventId) async {
