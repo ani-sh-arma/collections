@@ -17,6 +17,7 @@ class _AddRowDialogState extends State<AddRowDialog> {
   final _formKey = GlobalKey<FormState>();
   final _positionController = TextEditingController();
   bool _addAtEnd = true;
+  bool _pendingSave = false;
 
   @override
   void dispose() {
@@ -28,9 +29,11 @@ class _AddRowDialogState extends State<AddRowDialog> {
   Widget build(BuildContext context) {
     return BlocListener<EventDetailCubit, EventDetailState>(
       listener: (context, state) {
-        if (state is EventDetailLoaded) {
+        if (_pendingSave && state is EventDetailLoaded) {
+          // Only close after we explicitly triggered a save.
           Navigator.of(context).pop();
         } else if (state is EventDetailError) {
+          _pendingSave = false;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(state.message), backgroundColor: Colors.red),
           );
@@ -168,14 +171,15 @@ class _AddRowDialogState extends State<AddRowDialog> {
   }
 
   void _addRow() {
+    setState(() => _pendingSave = true);
     if (_addAtEnd) {
-      // Add at the end
       context.read<EventDetailCubit>().addRow();
     } else {
-      // Insert at specific position
       if (_formKey.currentState?.validate() ?? false) {
         final position = int.parse(_positionController.text);
         context.read<EventDetailCubit>().insertRowAtPosition(position);
+      } else {
+        setState(() => _pendingSave = false);
       }
     }
   }

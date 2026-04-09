@@ -63,6 +63,15 @@ class _EventDetailViewState extends State<EventDetailView> {
         }
       },
       child: BlocBuilder<EventDetailCubit, EventDetailState>(
+        // Skip rebuilds while saving so the table stays visible without a flash.
+        // Also skip EventDetailLoading if we already have loaded data (quiet refresh).
+        buildWhen: (previous, current) {
+          if (current is EventDetailSaving) return false;
+          if (previous is EventDetailLoaded && current is EventDetailLoading) {
+            return false;
+          }
+          return true;
+        },
         builder: (context, state) {
           if (state is EventDetailLoading) {
             return Scaffold(
@@ -74,9 +83,10 @@ class _EventDetailViewState extends State<EventDetailView> {
           } else if (state is EventDetailError) {
             return _buildErrorView(context, state);
           }
+          // Fallback for initial / unknown states
           return Scaffold(
             appBar: AppBar(title: const Text('Event Details')),
-            body: const Center(child: Text('Unknown state')),
+            body: const Center(child: CircularProgressIndicator()),
           );
         },
       ),
