@@ -301,8 +301,12 @@ class EventDetailCubit extends Cubit<EventDetailState> {
           loadedState.columns,
           loadedState.event.id,
         );
-        // Persist the new totals to DB in the background.
-        unawaited(_repository.updateEventTotals(updatedTotals));
+        // Persist the new totals to DB in the background (fire and forget).
+        unawaited(
+          _repository.updateEventTotals(updatedTotals).catchError(
+            (Object e) => log('Background totals persist failed: $e'),
+          ),
+        );
       }
 
       final updatedLoaded = loadedState.copyWith(
@@ -348,6 +352,7 @@ class EventDetailCubit extends Cubit<EventDetailState> {
 
   /// Computes totals directly from the in-memory [cells] and [columns] lists,
   /// avoiding a database roundtrip for an instant UI update.
+  /// Uses an O(n) lookup map keyed by 'rowId_columnId' for efficiency.
   EventTotals _computeTotalsFromCells(
     List<Cell> cells,
     List<EventColumn> columns,
@@ -364,19 +369,18 @@ class EventDetailCubit extends Cubit<EventDetailState> {
       return EventTotals.empty(eventId);
     }
 
+    // Build a map for O(1) cell lookups keyed by 'rowId_columnId'.
+    final cellMap = <String, Cell>{
+      for (final c in cells) '${c.rowId}_${c.columnId}': c,
+    };
+
     double onlineTotal = 0;
     double offlineTotal = 0;
 
     for (final amountCell in cells.where((c) => c.columnId == amountCol!.id)) {
       final amount = amountCell.valueNumber ?? 0.0;
       if (amount == 0.0) continue;
-      Cell? onlineCell;
-      for (final c in cells) {
-        if (c.rowId == amountCell.rowId && c.columnId == onlineCol.id) {
-          onlineCell = c;
-          break;
-        }
-      }
+      final onlineCell = cellMap['${amountCell.rowId}_${onlineCol.id}'];
       final isOnline = onlineCell?.boolValue ?? false;
       if (isOnline) {
         onlineTotal += amount;
