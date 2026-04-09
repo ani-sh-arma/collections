@@ -17,6 +17,7 @@ class _AddColumnDialogState extends State<AddColumnDialog> {
   final _formKey = GlobalKey<FormState>();
   final _labelController = TextEditingController();
   ColumnType _selectedType = ColumnType.text;
+  bool _pendingSave = false;
 
   @override
   void dispose() {
@@ -28,9 +29,10 @@ class _AddColumnDialogState extends State<AddColumnDialog> {
   Widget build(BuildContext context) {
     return BlocListener<EventDetailCubit, EventDetailState>(
       listener: (context, state) {
-        if (state is EventDetailLoaded) {
+        if (_pendingSave && state is EventDetailLoaded) {
           Navigator.of(context).pop();
         } else if (state is EventDetailError) {
+          _pendingSave = false;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(state.message), backgroundColor: Colors.red),
           );
@@ -182,6 +184,7 @@ class _AddColumnDialogState extends State<AddColumnDialog> {
 
   void _addColumn() {
     if (_formKey.currentState?.validate() ?? false) {
+      setState(() => _pendingSave = true);
       final label = _labelController.text.trim();
       context.read<EventDetailCubit>().addColumn(
         label: label,

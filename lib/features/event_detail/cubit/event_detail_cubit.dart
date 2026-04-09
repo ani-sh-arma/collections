@@ -1,58 +1,74 @@
-import 'dart:async';
 import 'dart:developer';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/models/models.dart';
 import '../../../core/repositories/event_repository.dart';
-import '../../../utils/debouncer.dart';
 import '../../../constants/app_constants.dart';
 import 'event_detail_state.dart';
 
 class EventDetailCubit extends Cubit<EventDetailState> {
   final EventRepository _repository;
-  final Debouncer _debouncer;
   String? _currentEventId;
+
+  /// Cached copy of the most recent [EventDetailLoaded] state.
+  /// Used by [updateCell] so cell edits are never dropped while a structural
+  /// save has temporarily moved the state to [EventDetailSaving].
+  EventDetailLoaded? _lastLoaded;
 
   EventDetailCubit({required EventRepository repository})
       : _repository = repository,
-        _debouncer = Debouncer(delay: AppConstants.autosaveDelay),
         super(const EventDetailInitial());
 
   @override
   Future<void> close() {
-    _debouncer.dispose();
     return super.close();
   }
 
+  /// Initial full load — shows a loading indicator and fetches all data.
   Future<void> loadEventDetail(String eventId) async {
     try {
       emit(const EventDetailLoading());
       _currentEventId = eventId;
-
-      final eventData = await _repository.getEventById(eventId);
-      if (eventData == null) {
-        emit(const EventDetailError('Event not found'));
-        return;
-      }
-
-      final columns = await _repository.getEventColumns(eventId);
-      final rows = await _repository.getEventRows(eventId);
-      final cells = await _repository.getEventCells(eventId);
-      final totals = await _repository.getEventTotals(eventId);
-
-      emit(
-        EventDetailLoaded(
-          event: eventData,
-          columns: columns,
-          rows: rows,
-          cells: cells,
-          totals: totals,
-        ),
-      );
+      await _fetchAndEmitLoaded(eventId);
     } catch (e) {
       emit(EventDetailError('Failed to load event details: ${e.toString()}'));
     }
+  }
+
+  /// Quiet refresh — fetches fresh data and updates state WITHOUT going through
+  /// [EventDetailLoading], so the table stays visible and there's no UI flash.
+  Future<void> _quietRefresh() async {
+    if (_currentEventId == null) return;
+    try {
+      await _fetchAndEmitLoaded(_currentEventId!);
+    } catch (e) {
+      emit(EventDetailError('Failed to refresh: ${e.toString()}'));
+    }
+  }
+
+  /// Shared logic: fetch all event data and emit [EventDetailLoaded].
+  Future<void> _fetchAndEmitLoaded(String eventId) async {
+    final eventData = await _repository.getEventById(eventId);
+    if (eventData == null) {
+      emit(const EventDetailError('Event not found'));
+      return;
+    }
+
+    final columns = await _repository.getEventColumns(eventId);
+    final rows = await _repository.getEventRows(eventId);
+    final cells = await _repository.getEventCells(eventId);
+    final totals = await _repository.getEventTotals(eventId);
+
+    final loaded = EventDetailLoaded(
+        event: eventData,
+        columns: columns,
+        rows: rows,
+        cells: cells,
+        totals: totals,
+      );
+    _lastLoaded = loaded;
+    emit(loaded);
   }
 
   Future<void> updateEventInfo(Event event) async {
@@ -60,11 +76,8 @@ class EventDetailCubit extends Cubit<EventDetailState> {
     if (currentState is! EventDetailLoaded) return;
 
     try {
-      emit(const EventDetailSaving('Updating event info'));
-
       final updatedEvent = event.copyWith(updatedAt: DateTime.now());
       await _repository.updateEvent(updatedEvent);
-
       emit(currentState.copyWith(event: updatedEvent));
     } catch (e) {
       emit(EventDetailError('Failed to update event info: ${e.toString()}'));
@@ -76,8 +89,6 @@ class EventDetailCubit extends Cubit<EventDetailState> {
     if (currentState is! EventDetailLoaded) return;
 
     try {
-      emit(const EventDetailSaving('Toggling lock'));
-
       final updatedEvent = currentState.event.copyWith(
         locked: !currentState.event.locked,
         updatedAt: DateTime.now(),
@@ -115,13 +126,13 @@ class EventDetailCubit extends Cubit<EventDetailState> {
       await _repository.createColumn(newColumn);
 
       if (addColumnIndex >= 0) {
-        final addColumn = currentState.columns[addColumnIndex];
+        final addCol = currentState.columns[addColumnIndex];
         await _repository.updateColumn(
-          addColumn.copyWith(position: newPosition + 1),
+          addCol.copyWith(position: newPosition + 1),
         );
       }
 
-      await refreshEventDetail();
+      await _quietRefresh();
     } catch (e) {
       emit(EventDetailError('Failed to add column: ${e.toString()}'));
     }
@@ -139,7 +150,6 @@ class EventDetailCubit extends Cubit<EventDetailState> {
       }).toList();
 
       emit(currentState.copyWith(columns: updatedColumns));
-      await refreshEventDetail();
     } catch (e) {
       emit(EventDetailError('Failed to update column: ${e.toString()}'));
     }
@@ -151,10 +161,8 @@ class EventDetailCubit extends Cubit<EventDetailState> {
 
     try {
       emit(const EventDetailSaving('Deleting column'));
-
       await _repository.deleteColumn(columnId);
-
-      await refreshEventDetail();
+      await _quietRefresh();
     } catch (e) {
       emit(EventDetailError('Failed to delete column: ${e.toString()}'));
     }
@@ -166,8 +174,7 @@ class EventDetailCubit extends Cubit<EventDetailState> {
 
     try {
       await _repository.reorderColumns(_currentEventId!, columnIds);
-
-      await refreshEventDetail();
+      await _quietRefresh();
     } catch (e) {
       emit(EventDetailError('Failed to reorder columns: ${e.toString()}'));
     }
@@ -190,8 +197,7 @@ class EventDetailCubit extends Cubit<EventDetailState> {
       );
 
       await _repository.createRow(newRow);
-
-      await refreshEventDetail();
+      await _quietRefresh();
     } catch (e) {
       emit(EventDetailError('Failed to add row: ${e.toString()}'));
     }
@@ -210,8 +216,7 @@ class EventDetailCubit extends Cubit<EventDetailState> {
       );
 
       await _repository.insertRowAtPosition(newRow, position);
-
-      await refreshEventDetail();
+      await _quietRefresh();
     } catch (e) {
       emit(EventDetailError('Failed to insert row: ${e.toString()}'));
     }
@@ -223,10 +228,9 @@ class EventDetailCubit extends Cubit<EventDetailState> {
 
     try {
       emit(const EventDetailSaving('Deleting row'));
-
       await _repository.deleteRow(rowId);
-
-      await refreshEventDetail();
+      await _quietRefresh();
+      // Recalculate after the quiet refresh so totals reflect the deleted row.
       await recalculateTotals();
     } catch (e) {
       emit(EventDetailError('Failed to delete row: ${e.toString()}'));
@@ -239,8 +243,7 @@ class EventDetailCubit extends Cubit<EventDetailState> {
 
     try {
       await _repository.reorderRows(_currentEventId!, rowIds);
-
-      await refreshEventDetail();
+      await _quietRefresh();
     } catch (e) {
       emit(EventDetailError('Failed to reorder rows: ${e.toString()}'));
     }
@@ -248,25 +251,50 @@ class EventDetailCubit extends Cubit<EventDetailState> {
 
   Future<void> updateCell(Cell cell) async {
     final currentState = state;
-    if (currentState is! EventDetailLoaded) return;
+    // Also allow cell edits while a structural save is in progress by falling
+    // back to the cached loaded state so edits are never silently dropped.
+    final loadedState = currentState is EventDetailLoaded
+        ? currentState
+        : _lastLoaded;
+    if (loadedState == null) return;
 
     try {
       final existingCell = await _repository.getCell(cell.rowId, cell.columnId);
 
+      final Cell cellToSave;
       if (existingCell != null) {
-        await _repository.updateCell(cell);
+        // Preserve the existing ID so the UPDATE query matches the DB row.
+        cellToSave = Cell(
+          id: existingCell.id,
+          rowId: cell.rowId,
+          columnId: cell.columnId,
+          valueText: cell.valueText,
+          valueNumber: cell.valueNumber,
+          valueBool: cell.valueBool,
+        );
+        await _repository.updateCell(cellToSave);
       } else {
-        await _repository.createCell(cell);
+        cellToSave = cell;
+        await _repository.createCell(cellToSave);
       }
 
-      final updatedCells = currentState.cells
-          .where((c) => !(c.rowId == cell.rowId && c.columnId == cell.columnId))
-          .toList();
-      updatedCells.add(cell);
+      // Replace the existing cell (if any) and append the new value in one pass.
+      final updatedCells = [
+        for (final c in loadedState.cells)
+          if (c.rowId != cellToSave.rowId || c.columnId != cellToSave.columnId) c,
+        cellToSave,
+      ];
 
-      emit(currentState.copyWith(cells: updatedCells));
+      final updatedLoaded = loadedState.copyWith(cells: updatedCells);
+      _lastLoaded = updatedLoaded;
+      // Only emit if we're not in the middle of a structural save.
+      // When saving, the pending _quietRefresh() will pick up the cell
+      // change from DB and emit a fresh EventDetailLoaded with all changes.
+      if (currentState is EventDetailLoaded) {
+        emit(updatedLoaded);
+      }
 
-      final column = currentState.getColumnById(cell.columnId);
+      final column = loadedState.getColumnById(cell.columnId);
       if (column != null &&
           (column.key == AppConstants.amountColumnKey ||
               column.key == AppConstants.onlineColumnKey)) {
@@ -277,17 +305,29 @@ class EventDetailCubit extends Cubit<EventDetailState> {
     }
   }
 
-  Future<void> updateCellText({required String rowId, required String columnId, required String value}) async {
+  Future<void> updateCellText({
+    required String rowId,
+    required String columnId,
+    required String value,
+  }) async {
     final cell = Cell(rowId: rowId, columnId: columnId).withTextValue(value);
     await updateCell(cell);
   }
 
-  Future<void> updateCellNumber({required String rowId, required String columnId, required double value}) async {
+  Future<void> updateCellNumber({
+    required String rowId,
+    required String columnId,
+    required double value,
+  }) async {
     final cell = Cell(rowId: rowId, columnId: columnId).withNumberValue(value);
     await updateCell(cell);
   }
 
-  Future<void> updateCellBool({required String rowId, required String columnId, required bool value}) async {
+  Future<void> updateCellBool({
+    required String rowId,
+    required String columnId,
+    required bool value,
+  }) async {
     final cell = Cell(rowId: rowId, columnId: columnId).withBoolValue(value);
     await updateCell(cell);
   }
@@ -304,10 +344,9 @@ class EventDetailCubit extends Cubit<EventDetailState> {
     }
   }
 
+  /// Public refresh — uses the quiet path so the table stays visible.
   Future<void> refreshEventDetail() async {
-    if (_currentEventId != null) {
-      await loadEventDetail(_currentEventId!);
-    }
+    await _quietRefresh();
   }
 }
 

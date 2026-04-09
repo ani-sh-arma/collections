@@ -41,7 +41,9 @@ class _CollectionTableState extends State<CollectionTable> {
   @override
   void didUpdateWidget(CollectionTable oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.cells != widget.cells) {
+    if (oldWidget.cells != widget.cells ||
+        oldWidget.rows != widget.rows ||
+        oldWidget.columns != widget.columns) {
       _updateControllers();
     }
   }
@@ -79,22 +81,37 @@ class _CollectionTableState extends State<CollectionTable> {
   }
 
   void _updateControllers() {
+    // Compute the set of keys that should exist.
+    final validKeys = <String>{};
+
     for (final row in widget.rows) {
       for (final column in widget.columns) {
-        if (column.type == ColumnType.text ||
-            column.type == ColumnType.number) {
+        if (column.type == ColumnType.text || column.type == ColumnType.number) {
           final key = '${row.id}_${column.id}';
-          final cell = _getCell(row.id, column.id);
+          validKeys.add(key);
 
-          if (_controllers.containsKey(key)) {
-            final controller = _controllers[key]!;
-            final newValue = cell?.displayValue ?? '';
-            if (controller.text != newValue) {
-              controller.text = newValue;
-            }
+          if (!_controllers.containsKey(key)) {
+            // New row/column combination — create a fresh controller.
+            // The controller starts with whatever value is in the DB for this cell.
+            final cell = _getCell(row.id, column.id);
+            _controllers[key] = TextEditingController(
+              text: cell?.displayValue ?? '',
+            );
+            _debouncers[key] = Debouncer(delay: AppConstants.autosaveDelay);
           }
+          // Existing controllers are never updated from DB — the user's input is
+          // the source of truth for text/number cells in this local-first app.
         }
       }
+    }
+
+    // Dispose and remove controllers for rows/columns that no longer exist.
+    final staleKeys = _controllers.keys
+        .where((key) => !validKeys.contains(key))
+        .toList();
+    for (final key in staleKeys) {
+      _controllers.remove(key)?.dispose();
+      _debouncers.remove(key)?.dispose();
     }
   }
 
@@ -293,10 +310,14 @@ class _CollectionTableState extends State<CollectionTable> {
 
   Widget _buildNumberCell(EventRow row, EventColumn column, Cell? cell) {
     if (widget.isLocked) {
+      final num = cell?.valueNumber;
+      final displayText = num != null
+          ? (num == num.truncateToDouble() ? num.toInt().toString() : num.toString())
+          : '';
       return Container(
         alignment: Alignment.centerRight,
         child: Text(
-          cell?.numberValue.toString() ?? '0',
+          displayText,
           style: const TextStyle(fontFamily: 'monospace'),
         ),
       );
