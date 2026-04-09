@@ -154,7 +154,7 @@ class _AddColumnDialogState extends State<AddColumnDialog> {
                     ? const SizedBox(
                         width: 16,
                         height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF150900)),
+                        child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.onGold),
                       )
                     : const Text('Add Column'),
               );

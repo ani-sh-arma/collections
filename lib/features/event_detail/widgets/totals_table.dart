@@ -156,7 +156,7 @@ class _GrandTotalCard extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF2A1900), Color(0xFF1A1200)],
+          colors: [AppColors.grandTotalGradientStart, AppColors.grandTotalGradientEnd],
         ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.gold.withValues(alpha: 0.3)),

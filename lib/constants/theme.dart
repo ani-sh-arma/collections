@@ -10,7 +10,7 @@ abstract final class AppTheme {
     useMaterial3: true,
     colorScheme: const ColorScheme.dark(
       primary: AppColors.gold,
-      onPrimary: Color(0xFF150900),
+      onPrimary: AppColors.onGold,
       primaryContainer: AppColors.goldDim,
       onPrimaryContainer: AppColors.goldLight,
       secondary: AppColors.sky,
@@ -133,7 +133,7 @@ abstract final class AppTheme {
     ),
     floatingActionButtonTheme: const FloatingActionButtonThemeData(
       backgroundColor: AppColors.gold,
-      foregroundColor: Color(0xFF150900),
+      foregroundColor: AppColors.onGold,
       elevation: 6,
       shape: CircleBorder(),
     ),
@@ -168,7 +168,7 @@ abstract final class AppTheme {
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
         backgroundColor: AppColors.gold,
-        foregroundColor: const Color(0xFF150900),
+        foregroundColor: AppColors.onGold,
         textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
@@ -187,7 +187,7 @@ abstract final class AppTheme {
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
         backgroundColor: AppColors.gold,
-        foregroundColor: const Color(0xFF150900),
+        foregroundColor: AppColors.onGold,
         textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
@@ -217,7 +217,7 @@ abstract final class AppTheme {
         if (states.contains(WidgetState.selected)) return AppColors.gold;
         return AppColors.transparent;
       }),
-      checkColor: WidgetStateProperty.all(const Color(0xFF150900)),
+      checkColor: WidgetStateProperty.all(AppColors.onGold),
       side: const BorderSide(color: AppColors.textMuted, width: 1.5),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
     ),

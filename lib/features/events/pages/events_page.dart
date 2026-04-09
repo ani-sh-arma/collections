@@ -107,7 +107,7 @@ class EventsView extends StatelessWidget {
             ),
             child: const Icon(
               Icons.account_balance_wallet_rounded,
-              color: Color(0xFF150900),
+              color: AppColors.onGold,
               size: 18,
             ),
           ),
@@ -185,7 +185,7 @@ class EventsView extends StatelessWidget {
     return FloatingActionButton.extended(
       onPressed: () => showCreateEventDialog(context),
       backgroundColor: AppColors.gold,
-      foregroundColor: const Color(0xFF150900),
+      foregroundColor: AppColors.onGold,
       elevation: 4,
       icon: const Icon(Icons.add_rounded, size: 22),
       label: const Text(

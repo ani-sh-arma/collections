@@ -6,6 +6,7 @@ import 'package:sqlite3_flutter_libs/sqlite3_flutter_libs.dart';
 
 import 'utils/size_utils.dart';
 import 'constants/theme.dart';
+import 'constants/colors.dart';
 import 'core/di/service_locator.dart';
 
 void main() async {
@@ -15,10 +16,10 @@ void main() async {
     await applyWorkaroundToOpenSqlite3OnOldAndroidVersions();
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(
-        statusBarColor: Color(0xFF080D1A),
+        statusBarColor: AppColors.bgDeep,
         statusBarBrightness: Brightness.dark,
         statusBarIconBrightness: Brightness.light,
-        systemNavigationBarColor: Color(0xFF080D1A),
+        systemNavigationBarColor: AppColors.bgDeep,
         systemNavigationBarIconBrightness: Brightness.light,
       ),
     );

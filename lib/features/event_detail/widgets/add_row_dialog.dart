@@ -148,7 +148,7 @@ class _AddRowDialogState extends State<AddRowDialog> {
                         height: 16,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: Color(0xFF150900),
+                          color: AppColors.onGold,
                         ),
                       )
                     : const Text('Add Row'),

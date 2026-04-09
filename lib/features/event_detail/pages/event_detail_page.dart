@@ -224,7 +224,7 @@ class _EventDetailViewState extends State<EventDetailView> {
           : FloatingActionButton.extended(
               onPressed: () => _showAddRowDialog(context),
               backgroundColor: AppColors.gold,
-              foregroundColor: const Color(0xFF150900),
+              foregroundColor: AppColors.onGold,
               elevation: 4,
               icon: const Icon(Icons.add_rounded, size: 20),
               label: const Text(

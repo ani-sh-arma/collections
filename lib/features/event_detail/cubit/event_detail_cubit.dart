@@ -370,10 +370,13 @@ class EventDetailCubit extends Cubit<EventDetailState> {
     for (final amountCell in cells.where((c) => c.columnId == amountCol!.id)) {
       final amount = amountCell.valueNumber ?? 0.0;
       if (amount == 0.0) continue;
-      final onlineCell = cells.cast<Cell?>().firstWhere(
-        (c) => c?.rowId == amountCell.rowId && c?.columnId == onlineCol!.id,
-        orElse: () => null,
-      );
+      Cell? onlineCell;
+      for (final c in cells) {
+        if (c.rowId == amountCell.rowId && c.columnId == onlineCol.id) {
+          onlineCell = c;
+          break;
+        }
+      }
       final isOnline = onlineCell?.boolValue ?? false;
       if (isOnline) {
         onlineTotal += amount;

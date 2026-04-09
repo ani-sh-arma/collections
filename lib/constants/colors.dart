@@ -26,9 +26,16 @@ abstract final class AppColors {
   static const textSecondary = Color(0xFF8A9BB0);
   static const textMuted = Color(0xFF4E5F74);
 
+  // === Text on gold (dark brown – used for button labels on gold backgrounds) ===
+  static const onGold = Color(0xFF150900);
+
   // === Borders ===
   static const border = Color(0xFF1E2F45);
   static const borderFocused = Color(0xFFF0A500);
+
+  // === Grand total card gradient stops ===
+  static const grandTotalGradientStart = Color(0xFF2A1900);
+  static const grandTotalGradientEnd = Color(0xFF1A1200);
 
   // === Misc ===
   static const white = Color(0xFFFFFFFF);

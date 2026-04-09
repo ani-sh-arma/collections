@@ -214,7 +214,7 @@ class _CreateEventDialogState extends State<CreateEventDialog> {
                                   height: 18,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
-                                    color: Color(0xFF150900),
+                                    color: AppColors.onGold,
                                   ),
                                 )
                               : const Text('Create Event'),
