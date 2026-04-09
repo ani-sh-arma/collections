@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/models/models.dart';
 import '../../../constants/app_constants.dart';
+import '../../../constants/colors.dart';
 
 class ImportDialog extends StatelessWidget {
   final ExportData exportData;
@@ -25,7 +26,11 @@ class ImportDialog extends StatelessWidget {
           Navigator.of(context).pop();
         } else if (state is ImportExportError) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
+            SnackBar(
+              content: Text(state.message),
+              backgroundColor: AppColors.bgCard,
+              behavior: SnackBarBehavior.floating,
+            ),
           );
         }
       },
@@ -37,56 +42,66 @@ class ImportDialog extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _InfoRow(
-                label: 'Export Version',
-                value: preview['version']?.toString() ?? 'Unknown',
+              // Stats grid
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppColors.bgDeep,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Column(
+                  children: [
+                    _InfoRow(label: 'Export Version', value: preview['version']?.toString() ?? 'Unknown'),
+                    const SizedBox(height: 6),
+                    _InfoRow(label: 'Exported At', value: _formatDate(preview['exportedAt'])),
+                    const SizedBox(height: 6),
+                    _InfoRow(label: 'Total Events', value: preview['totalEvents']?.toString() ?? '0'),
+                    const SizedBox(height: 6),
+                    _InfoRow(label: 'Total Rows', value: preview['totalRows']?.toString() ?? '0'),
+                    const SizedBox(height: 6),
+                    _InfoRow(label: 'Total Cells', value: preview['totalCells']?.toString() ?? '0'),
+                  ],
+                ),
               ),
-              _InfoRow(
-                label: 'Exported At',
-                value: _formatDate(preview['exportedAt']),
-              ),
-              _InfoRow(
-                label: 'Total Events',
-                value: preview['totalEvents']?.toString() ?? '0',
-              ),
-              _InfoRow(
-                label: 'Total Rows',
-                value: preview['totalRows']?.toString() ?? '0',
-              ),
-              _InfoRow(
-                label: 'Total Cells',
-                value: preview['totalCells']?.toString() ?? '0',
-              ),
-              const SizedBox(height: AppConstants.padding),
+
+              const SizedBox(height: 16),
+
               const Text(
-                'Events to Import:',
-                style: TextStyle(fontWeight: FontWeight.bold),
+                'EVENTS TO IMPORT',
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 11,
+                  color: AppColors.textMuted,
+                  letterSpacing: 1.2,
+                ),
               ),
-              const SizedBox(height: AppConstants.smallPadding),
+              const SizedBox(height: 8),
+
               Flexible(
                 child: Container(
-                  constraints: const BoxConstraints(maxHeight: 200),
+                  constraints: const BoxConstraints(maxHeight: 160),
+                  decoration: BoxDecoration(
+                    color: AppColors.bgDeep,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: AppColors.border),
+                  ),
                   child: ListView.builder(
                     shrinkWrap: true,
+                    padding: const EdgeInsets.symmetric(vertical: 4),
                     itemCount: (preview['eventTitles'] as List?)?.length ?? 0,
                     itemBuilder: (context, index) {
                       final titles = preview['eventTitles'] as List;
                       return Padding(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: AppConstants.smallPadding / 2,
-                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         child: Row(
                           children: [
-                            const Icon(
-                              Icons.event,
-                              size: 16,
-                              color: Colors.grey,
-                            ),
-                            const SizedBox(width: AppConstants.smallPadding),
+                            const Icon(Icons.event_outlined, size: 14, color: AppColors.textMuted),
+                            const SizedBox(width: 8),
                             Expanded(
                               child: Text(
                                 titles[index]?.toString() ?? 'Untitled Event',
-                                style: Theme.of(context).textTheme.bodyMedium,
+                                style: const TextStyle(color: AppColors.textPrimary, fontSize: 13),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -98,26 +113,24 @@ class ImportDialog extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: AppConstants.padding),
+
+              const SizedBox(height: 14),
+
               Container(
                 padding: const EdgeInsets.all(AppConstants.smallPadding),
                 decoration: BoxDecoration(
-                  color: Colors.blue.withAlpha(25),
-                  borderRadius: BorderRadius.circular(
-                    AppConstants.smallPadding,
-                  ),
-                  border: Border.all(color: Colors.blue.withAlpha(50)),
+                  color: AppColors.skyDim,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.sky.withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.info_outline, color: Colors.blue[700], size: 20),
-                    const SizedBox(width: AppConstants.smallPadding),
+                    const Icon(Icons.info_outline_rounded, color: AppColors.sky, size: 14),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'Imported events will be assigned new IDs to avoid conflicts.',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.blue[700],
-                        ),
+                        style: TextStyle(fontSize: 12, color: AppColors.sky.withValues(alpha: 0.9)),
                       ),
                     ),
                   ],
@@ -137,22 +150,17 @@ class ImportDialog extends StatelessWidget {
           BlocBuilder<ImportExportCubit, ImportExportState>(
             builder: (context, state) {
               final isImporting = state is ImportExportLoading;
-
               return ElevatedButton(
-                onPressed:
-                    isImporting
-                        ? null
-                        : () => context.read<ImportExportCubit>().confirmImport(
-                          exportData,
-                        ),
-                child:
-                    isImporting
-                        ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                        : const Text('Import'),
+                onPressed: isImporting
+                    ? null
+                    : () => context.read<ImportExportCubit>().confirmImport(exportData),
+                child: isImporting
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.onGold),
+                      )
+                    : const Text('Import'),
               );
             },
           ),
@@ -166,9 +174,9 @@ class ImportDialog extends StatelessWidget {
       if (timestamp is DateTime) {
         return DateFormat('MMM dd, yyyy HH:mm').format(timestamp);
       } else if (timestamp is int) {
-        return DateFormat(
-          'MMM dd, yyyy HH:mm',
-        ).format(DateTime.fromMillisecondsSinceEpoch(timestamp));
+        return DateFormat('MMM dd, yyyy HH:mm').format(
+          DateTime.fromMillisecondsSinceEpoch(timestamp),
+        );
       }
       return 'Unknown';
     } catch (e) {
@@ -185,25 +193,27 @@ class _InfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 100,
-            child: Text(
-              '$label:',
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 110,
+          child: Text(
+            '$label:',
+            style: const TextStyle(
+              fontWeight: FontWeight.w600,
+              color: AppColors.textSecondary,
+              fontSize: 13,
             ),
           ),
-          Expanded(
-            child: Text(value, style: Theme.of(context).textTheme.bodyMedium),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(color: AppColors.textPrimary, fontSize: 13),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

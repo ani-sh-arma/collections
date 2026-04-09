@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/models/models.dart';
 import '../../../constants/app_constants.dart';
+import '../../../constants/colors.dart';
 import '../cubit/event_detail_state.dart';
 import '../cubit/event_detail_cubit.dart';
 
@@ -34,7 +35,11 @@ class _AddColumnDialogState extends State<AddColumnDialog> {
         } else if (state is EventDetailError) {
           _pendingSave = false;
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
+            SnackBar(
+              content: Text(state.message),
+              backgroundColor: AppColors.bgCard,
+              behavior: SnackBarBehavior.floating,
+            ),
           );
         }
       },
@@ -51,11 +56,11 @@ class _AddColumnDialogState extends State<AddColumnDialog> {
                 // Column name input
                 TextFormField(
                   controller: _labelController,
+                  style: const TextStyle(color: AppColors.textPrimary),
                   decoration: const InputDecoration(
                     labelText: 'Column Name *',
                     hintText: 'Enter column name',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.label),
+                    prefixIcon: Icon(Icons.label_outline_rounded),
                   ),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
@@ -73,48 +78,39 @@ class _AddColumnDialogState extends State<AddColumnDialog> {
 
                 // Column type selection
                 const Text(
-                  'Column Type:',
-                  style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
+                  'COLUMN TYPE',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 11,
+                    color: AppColors.textMuted,
+                    letterSpacing: 1.2,
+                  ),
                 ),
                 const SizedBox(height: AppConstants.smallPadding),
 
-                // Text type
-                RadioListTile<ColumnType>(
-                  title: const Text('Text'),
-                  subtitle: const Text('For names, descriptions, etc.'),
+                _TypeOption(
+                  label: 'Text',
+                  subtitle: 'Names, descriptions, etc.',
+                  icon: Icons.text_fields_rounded,
                   value: ColumnType.text,
                   groupValue: _selectedType,
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedType = value ?? ColumnType.text;
-                    });
-                  },
+                  onChanged: (v) => setState(() => _selectedType = v!),
                 ),
-
-                // Number type
-                RadioListTile<ColumnType>(
-                  title: const Text('Number'),
-                  subtitle: const Text('For amounts, quantities, etc.'),
+                _TypeOption(
+                  label: 'Number',
+                  subtitle: 'Amounts, quantities, etc.',
+                  icon: Icons.tag_rounded,
                   value: ColumnType.number,
                   groupValue: _selectedType,
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedType = value ?? ColumnType.text;
-                    });
-                  },
+                  onChanged: (v) => setState(() => _selectedType = v!),
                 ),
-
-                // Boolean type
-                RadioListTile<ColumnType>(
-                  title: const Text('Checkbox'),
-                  subtitle: const Text('For yes/no, true/false values'),
+                _TypeOption(
+                  label: 'Checkbox',
+                  subtitle: 'Yes/No, True/False values',
+                  icon: Icons.check_box_outlined,
                   value: ColumnType.boolean,
                   groupValue: _selectedType,
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedType = value ?? ColumnType.text;
-                    });
-                  },
+                  onChanged: (v) => setState(() => _selectedType = v!),
                 ),
 
                 const SizedBox(height: AppConstants.padding),
@@ -123,29 +119,18 @@ class _AddColumnDialogState extends State<AddColumnDialog> {
                 Container(
                   padding: const EdgeInsets.all(AppConstants.smallPadding),
                   decoration: BoxDecoration(
-                    color: Colors.blue.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(
-                      AppConstants.smallPadding,
-                    ),
-                    border: Border.all(
-                      color: Colors.blue.withValues(alpha: 0.3),
-                    ),
+                    color: AppColors.skyDim,
+                    borderRadius: BorderRadius.circular(AppConstants.smallPadding),
+                    border: Border.all(color: AppColors.sky.withValues(alpha: 0.3)),
                   ),
                   child: Row(
                     children: [
-                      Icon(
-                        Icons.info_outline,
-                        color: Colors.blue.shade700,
-                        size: 16,
-                      ),
+                      const Icon(Icons.info_outline_rounded, color: AppColors.sky, size: 14),
                       const SizedBox(width: AppConstants.smallPadding),
                       Expanded(
                         child: Text(
                           'The new column will be added before the "+" column.',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.blue.shade700,
-                          ),
+                          style: TextStyle(fontSize: 12, color: AppColors.sky.withValues(alpha: 0.9)),
                         ),
                       ),
                     ],
@@ -163,17 +148,15 @@ class _AddColumnDialogState extends State<AddColumnDialog> {
           BlocBuilder<EventDetailCubit, EventDetailState>(
             builder: (context, state) {
               final isLoading = state is EventDetailSaving;
-
               return ElevatedButton(
                 onPressed: isLoading ? null : _addColumn,
-                child:
-                    isLoading
-                        ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                        : const Text('Add Column'),
+                child: isLoading
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.onGold),
+                      )
+                    : const Text('Add Column'),
               );
             },
           ),
@@ -185,11 +168,83 @@ class _AddColumnDialogState extends State<AddColumnDialog> {
   void _addColumn() {
     if (_formKey.currentState?.validate() ?? false) {
       setState(() => _pendingSave = true);
-      final label = _labelController.text.trim();
       context.read<EventDetailCubit>().addColumn(
-        label: label,
+        label: _labelController.text.trim(),
         type: _selectedType,
       );
     }
   }
 }
+
+class _TypeOption extends StatelessWidget {
+  final String label;
+  final String subtitle;
+  final IconData icon;
+  final ColumnType value;
+  final ColumnType groupValue;
+  final ValueChanged<ColumnType?> onChanged;
+
+  const _TypeOption({
+    required this.label,
+    required this.subtitle,
+    required this.icon,
+    required this.value,
+    required this.groupValue,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isSelected = value == groupValue;
+    return GestureDetector(
+      onTap: () => onChanged(value),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppColors.gold.withValues(alpha: 0.1)
+              : AppColors.bgDeep,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isSelected ? AppColors.gold.withValues(alpha: 0.4) : AppColors.border,
+          ),
+        ),
+        child: Row(
+          children: [
+            Radio<ColumnType>(
+              value: value,
+              groupValue: groupValue,
+              onChanged: onChanged,
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              visualDensity: VisualDensity.compact,
+            ),
+            const SizedBox(width: 8),
+            Icon(icon, size: 18, color: isSelected ? AppColors.gold : AppColors.textSecondary),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      color: isSelected ? AppColors.textPrimary : AppColors.textSecondary,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+

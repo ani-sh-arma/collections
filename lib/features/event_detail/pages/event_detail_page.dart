@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/di/service_locator.dart';
-import '../../../constants/app_constants.dart';
+import '../../../constants/colors.dart';
 import '../cubit/event_detail_state.dart';
 import '../cubit/event_detail_cubit.dart';
 import '../widgets/event_info_section.dart';
@@ -51,20 +51,39 @@ class _EventDetailViewState extends State<EventDetailView> {
       listener: (context, state) {
         if (state is EventDetailError) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.error_outline_rounded, color: AppColors.rose, size: 18),
+                  const SizedBox(width: 10),
+                  Expanded(child: Text(state.message)),
+                ],
+              ),
+              backgroundColor: AppColors.bgCard,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              margin: const EdgeInsets.all(16),
+            ),
           );
         } else if (state is EventDetailOperationSuccess) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(state.message),
-              backgroundColor: Colors.green,
+              content: Row(
+                children: [
+                  const Icon(Icons.check_circle_outline_rounded, color: AppColors.emerald, size: 18),
+                  const SizedBox(width: 10),
+                  Expanded(child: Text(state.message)),
+                ],
+              ),
+              backgroundColor: AppColors.bgCard,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              margin: const EdgeInsets.all(16),
             ),
           );
         }
       },
       child: BlocBuilder<EventDetailCubit, EventDetailState>(
-        // Skip rebuilds while saving so the table stays visible without a flash.
-        // Also skip EventDetailLoading if we already have loaded data (quiet refresh).
         buildWhen: (previous, current) {
           if (current is EventDetailSaving) return false;
           if (previous is EventDetailLoaded && current is EventDetailLoading) {
@@ -74,19 +93,20 @@ class _EventDetailViewState extends State<EventDetailView> {
         },
         builder: (context, state) {
           if (state is EventDetailLoading) {
-            return Scaffold(
-              appBar: AppBar(title: const Text('Loading...')),
-              body: const Center(child: CircularProgressIndicator()),
+            return const Scaffold(
+              backgroundColor: AppColors.bgDeep,
+              body: Center(
+                child: CircularProgressIndicator(color: AppColors.gold),
+              ),
             );
           } else if (state is EventDetailLoaded) {
             return _buildLoadedView(context, state);
           } else if (state is EventDetailError) {
             return _buildErrorView(context, state);
           }
-          // Fallback for initial / unknown states
-          return Scaffold(
-            appBar: AppBar(title: const Text('Event Details')),
-            body: const Center(child: CircularProgressIndicator()),
+          return const Scaffold(
+            backgroundColor: AppColors.bgDeep,
+            body: Center(child: CircularProgressIndicator(color: AppColors.gold)),
           );
         },
       ),
@@ -94,67 +114,87 @@ class _EventDetailViewState extends State<EventDetailView> {
   }
 
   Widget _buildLoadedView(BuildContext context, EventDetailLoaded state) {
-    return RefreshIndicator(
-      onRefresh: () async {
-        await context.read<EventDetailCubit>().loadEventDetail(widget.eventId);
-      },
-      child: Scaffold(
-        body: Column(
-          children: [
-            // Event Info Section
-            EventInfoSection(event: state.event),
+    return Scaffold(
+      backgroundColor: AppColors.bgDeep,
+      body: Column(
+        children: [
+          // Gradient event header
+          EventInfoSection(event: state.event),
 
-            // Collection Table
-            Expanded(
+          // Content
+          Expanded(
+            child: RefreshIndicator(
+              color: AppColors.gold,
+              backgroundColor: AppColors.bgCard,
+              onRefresh: () =>
+                  context.read<EventDetailCubit>().refreshEventDetail(),
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(AppConstants.padding),
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(16, 20, 16, 120),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Collection Table Title with Reorder Toggle
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.only(left: 10.0),
-                          child: Text(
-                            'Collection Data',
-                            style: Theme.of(context).textTheme.titleLarge
-                                ?.copyWith(fontWeight: FontWeight.bold),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // ── Section header: Collection Data ──────────────────────
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'COLLECTION DATA',
+                              style: TextStyle(
+                                color: AppColors.textMuted,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 1.5,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '${state.sortedRows.length} ${state.sortedRows.length == 1 ? 'entry' : 'entries'}',
+                              style: const TextStyle(
+                                color: AppColors.textSecondary,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // Reorder toggle (only when unlocked)
+                      if (!state.isLocked) ...[
+                        const Text(
+                          'Reorder',
+                          style: TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
-                        if (!state.isLocked)
-                          Row(
-                            children: [
-                              Text(
-                                'Reorder Mode',
-                                style: Theme.of(context).textTheme.bodySmall,
-                              ),
-                              const SizedBox(width: 8),
-                              Switch(
-                                value: _isReorderMode,
-                                onChanged: (value) {
-                                  setState(() {
-                                    _isReorderMode = value;
-                                  });
-                                },
-                              ),
-                            ],
-                          ),
+                        const SizedBox(width: 8),
+                        Switch(
+                          value: _isReorderMode,
+                          onChanged: (value) {
+                            setState(() => _isReorderMode = value);
+                          },
+                        ),
                       ],
-                    ),
-                    const SizedBox(height: AppConstants.padding),
+                    ],
+                  ),
 
-                    // Collection Table (switches between normal and reorderable)
-                    _isReorderMode && !state.isLocked
-                        ? ReorderableCollectionTable(
+                  const SizedBox(height: 12),
+
+                  // ── Data table ───────────────────────────────────────────
+                  _isReorderMode && !state.isLocked
+                      ? ReorderableCollectionTable(
                           event: state.event,
                           columns: state.sortedColumns,
                           rows: state.sortedRows,
                           cells: state.cells,
                           isLocked: state.isLocked,
                         )
-                        : CollectionTable(
+                      : CollectionTable(
                           event: state.event,
                           columns: state.sortedColumns,
                           rows: state.sortedRows,
@@ -162,52 +202,84 @@ class _EventDetailViewState extends State<EventDetailView> {
                           isLocked: state.isLocked,
                         ),
 
-                    Divider(),
+                  const SizedBox(height: 28),
 
-                    // Totals Table
-                    TotalsTable(totals: state.totals),
-                  ],
-                ),
+                  // ── Section header: Summary ──────────────────────────────
+                  const Text(
+                    'COLLECTION SUMMARY',
+                    style: TextStyle(
+                      color: AppColors.textMuted,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // ── Totals table ─────────────────────────────────────────
+                  TotalsTable(totals: state.totals),
+                ],
               ),
             ),
-          ],
+          ),
         ),
-        floatingActionButton:
-            state.isLocked
-                ? null
-                : FloatingActionButton(
-                  onPressed: () => _showAddRowDialog(context),
-                  tooltip: 'Insert Row',
-                  child: const Icon(Icons.add),
-                ),
+        ],
       ),
+      floatingActionButton: state.isLocked
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: () => _showAddRowDialog(context),
+              backgroundColor: AppColors.gold,
+              foregroundColor: AppColors.onGold,
+              elevation: 4,
+              icon: const Icon(Icons.add_rounded, size: 20),
+              label: const Text(
+                'Add Row',
+                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            ),
     );
   }
 
   Widget _buildErrorView(BuildContext context, EventDetailError state) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Error')),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, size: 64, color: Colors.red),
-            const SizedBox(height: AppConstants.padding),
-            Text(
-              state.message,
-              style: Theme.of(context).textTheme.bodyLarge,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: AppConstants.largePadding),
-            ElevatedButton(
-              onPressed: () {
-                context.read<EventDetailCubit>().loadEventDetail(
-                  widget.eventId,
-                );
-              },
-              child: const Text('Retry'),
-            ),
-          ],
+      backgroundColor: AppColors.bgDeep,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(40),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: AppColors.roseDim,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.error_outline_rounded, size: 40, color: AppColors.rose),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                state.message,
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 14,
+                  height: 1.6,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 28),
+              ElevatedButton.icon(
+                onPressed: () {
+                  context.read<EventDetailCubit>().loadEventDetail(widget.eventId);
+                },
+                icon: const Icon(Icons.refresh_rounded, size: 18),
+                label: const Text('Retry'),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -216,11 +288,10 @@ class _EventDetailViewState extends State<EventDetailView> {
   void _showAddRowDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder:
-          (dialogContext) => BlocProvider.value(
-            value: context.read<EventDetailCubit>(),
-            child: const AddRowDialog(),
-          ),
+      builder: (dialogContext) => BlocProvider.value(
+        value: context.read<EventDetailCubit>(),
+        child: const AddRowDialog(),
+      ),
     );
   }
 }

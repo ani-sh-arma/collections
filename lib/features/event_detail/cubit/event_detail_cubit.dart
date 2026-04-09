@@ -16,14 +16,14 @@ class EventDetailCubit extends Cubit<EventDetailState> {
   /// save has temporarily moved the state to [EventDetailSaving].
   EventDetailLoaded? _lastLoaded;
 
+  /// Serialises background totals-persist calls so that a slower earlier
+  /// write can never overwrite the result of a faster later write.
+  Future<void> _totalsPersistFuture = Future.value();
+
   EventDetailCubit({required EventRepository repository})
       : _repository = repository,
         super(const EventDetailInitial());
 
-  @override
-  Future<void> close() {
-    return super.close();
-  }
 
   /// Initial full load — shows a loading indicator and fetches all data.
   Future<void> loadEventDetail(String eventId) async {
@@ -285,20 +285,39 @@ class EventDetailCubit extends Cubit<EventDetailState> {
         cellToSave,
       ];
 
-      final updatedLoaded = loadedState.copyWith(cells: updatedCells);
-      _lastLoaded = updatedLoaded;
-      // Only emit if we're not in the middle of a structural save.
-      // When saving, the pending _quietRefresh() will pick up the cell
-      // change from DB and emit a fresh EventDetailLoaded with all changes.
-      if (currentState is EventDetailLoaded) {
-        emit(updatedLoaded);
+      // Check if this cell affects totals
+      final column = loadedState.getColumnById(cell.columnId);
+      final affectsTotals = column != null &&
+          (column.key == AppConstants.amountColumnKey ||
+              column.key == AppConstants.onlineColumnKey);
+
+      // Compute new totals from in-memory cells immediately (no DB roundtrip).
+      // This makes the totals table update at the same moment as the cell save.
+      EventTotals? updatedTotals = loadedState.totals;
+      if (affectsTotals) {
+        updatedTotals = _computeTotalsFromCells(
+          updatedCells,
+          loadedState.columns,
+          loadedState.event.id,
+        );
+        // Persist totals to DB in the background.  Writes are chained so an
+        // older slow write can never overwrite the result of a newer one.
+        final totalsToSave = updatedTotals;
+        _totalsPersistFuture = _totalsPersistFuture.whenComplete(
+          () => _repository
+              .updateEventTotals(totalsToSave)
+              .catchError((Object e) => log('Background totals persist failed: $e')),
+        );
       }
 
-      final column = loadedState.getColumnById(cell.columnId);
-      if (column != null &&
-          (column.key == AppConstants.amountColumnKey ||
-              column.key == AppConstants.onlineColumnKey)) {
-        await recalculateTotals();
+      final updatedLoaded = loadedState.copyWith(
+        cells: updatedCells,
+        totals: updatedTotals,
+      );
+      _lastLoaded = updatedLoaded;
+      // Only emit if we're not in the middle of a structural save.
+      if (currentState is EventDetailLoaded) {
+        emit(updatedLoaded);
       }
     } catch (e) {
       emit(EventDetailError('Failed to update cell: ${e.toString()}'));
@@ -330,6 +349,52 @@ class EventDetailCubit extends Cubit<EventDetailState> {
   }) async {
     final cell = Cell(rowId: rowId, columnId: columnId).withBoolValue(value);
     await updateCell(cell);
+  }
+
+  /// Computes totals directly from the in-memory [cells] and [columns] lists,
+  /// avoiding a database roundtrip for an instant UI update.
+  /// Uses an O(n) lookup map keyed by 'rowId_columnId' for efficiency.
+  EventTotals _computeTotalsFromCells(
+    List<Cell> cells,
+    List<EventColumn> columns,
+    String eventId,
+  ) {
+    EventColumn? amountCol;
+    EventColumn? onlineCol;
+    for (final col in columns) {
+      if (col.key == AppConstants.amountColumnKey) amountCol = col;
+      if (col.key == AppConstants.onlineColumnKey) onlineCol = col;
+    }
+
+    if (amountCol == null || onlineCol == null) {
+      return EventTotals.empty(eventId);
+    }
+
+    // Build a map for O(1) cell lookups keyed by 'rowId_columnId'.
+    final cellMap = <String, Cell>{
+      for (final c in cells) '${c.rowId}_${c.columnId}': c,
+    };
+
+    double onlineTotal = 0;
+    double offlineTotal = 0;
+
+    for (final amountCell in cells.where((c) => c.columnId == amountCol!.id)) {
+      final amount = amountCell.valueNumber ?? 0.0;
+      if (amount == 0.0) continue;
+      final onlineCell = cellMap['${amountCell.rowId}_${onlineCol.id}'];
+      final isOnline = onlineCell?.boolValue ?? false;
+      if (isOnline) {
+        onlineTotal += amount;
+      } else {
+        offlineTotal += amount;
+      }
+    }
+
+    return EventTotals(
+      eventId: eventId,
+      onlineTotal: onlineTotal,
+      offlineTotal: offlineTotal,
+    );
   }
 
   Future<void> recalculateTotals() async {

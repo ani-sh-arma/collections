@@ -1,10 +1,12 @@
 import 'dart:io';
 import 'package:collections/features/events/pages/events_page.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:sqlite3_flutter_libs/sqlite3_flutter_libs.dart';
 
 import 'utils/size_utils.dart';
 import 'constants/theme.dart';
+import 'constants/colors.dart';
 import 'core/di/service_locator.dart';
 
 void main() async {
@@ -12,6 +14,15 @@ void main() async {
 
   if (Platform.isAndroid) {
     await applyWorkaroundToOpenSqlite3OnOldAndroidVersions();
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: AppColors.bgDeep,
+        statusBarBrightness: Brightness.dark,
+        statusBarIconBrightness: Brightness.light,
+        systemNavigationBarColor: AppColors.bgDeep,
+        systemNavigationBarIconBrightness: Brightness.light,
+      ),
+    );
   }
 
   await setupServiceLocator();
@@ -31,6 +42,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
+      themeMode: ThemeMode.dark,
       home: const EventsPage(),
     );
   }

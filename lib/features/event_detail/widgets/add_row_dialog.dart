@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../constants/app_constants.dart';
+import '../../../constants/colors.dart';
 import '../cubit/event_detail_state.dart';
 import '../cubit/event_detail_cubit.dart';
 
@@ -30,12 +31,15 @@ class _AddRowDialogState extends State<AddRowDialog> {
     return BlocListener<EventDetailCubit, EventDetailState>(
       listener: (context, state) {
         if (_pendingSave && state is EventDetailLoaded) {
-          // Only close after we explicitly triggered a save.
           Navigator.of(context).pop();
         } else if (state is EventDetailError) {
           _pendingSave = false;
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
+            SnackBar(
+              content: Text(state.message),
+              backgroundColor: AppColors.bgCard,
+              behavior: SnackBarBehavior.floating,
+            ),
           );
         }
       },
@@ -50,47 +54,43 @@ class _AddRowDialogState extends State<AddRowDialog> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Choose where to add the new row:',
-                  style: TextStyle(fontWeight: FontWeight.w500),
+                  'WHERE TO ADD',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 11,
+                    color: AppColors.textMuted,
+                    letterSpacing: 1.2,
+                  ),
                 ),
-                const SizedBox(height: AppConstants.padding),
+                const SizedBox(height: 12),
 
-                // Add at end option
-                RadioListTile<bool>(
-                  title: const Text('Add at the end'),
-                  subtitle: const Text('Append to the bottom of the table'),
+                _RowOption(
+                  title: 'Add at the end',
+                  subtitle: 'Append to the bottom of the table',
+                  icon: Icons.vertical_align_bottom_rounded,
                   value: true,
                   groupValue: _addAtEnd,
-                  onChanged: (value) {
-                    setState(() {
-                      _addAtEnd = value ?? true;
-                    });
-                  },
+                  onChanged: (v) => setState(() => _addAtEnd = v!),
                 ),
-
-                // Insert at position option
-                RadioListTile<bool>(
-                  title: const Text('Insert at specific position'),
-                  subtitle: const Text('Insert at a specific row number'),
+                const SizedBox(height: 8),
+                _RowOption(
+                  title: 'Insert at position',
+                  subtitle: 'Insert at a specific row number',
+                  icon: Icons.format_list_numbered_rounded,
                   value: false,
                   groupValue: _addAtEnd,
-                  onChanged: (value) {
-                    setState(() {
-                      _addAtEnd = value ?? true;
-                    });
-                  },
+                  onChanged: (v) => setState(() => _addAtEnd = v!),
                 ),
 
-                // Position input (only shown when inserting at position)
                 if (!_addAtEnd) ...[
-                  const SizedBox(height: AppConstants.padding),
+                  const SizedBox(height: 16),
                   TextFormField(
                     controller: _positionController,
+                    style: const TextStyle(color: AppColors.textPrimary),
                     decoration: const InputDecoration(
                       labelText: 'Row Position *',
-                      hintText: 'Enter row number (e.g., 1, 2, 3...)',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.format_list_numbered),
+                      hintText: 'e.g., 1, 2, 3...',
+                      prefixIcon: Icon(Icons.format_list_numbered_rounded),
                     ),
                     keyboardType: TextInputType.number,
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
@@ -106,33 +106,22 @@ class _AddRowDialogState extends State<AddRowDialog> {
                     },
                     autofocus: true,
                   ),
-                  const SizedBox(height: AppConstants.smallPadding),
+                  const SizedBox(height: 10),
                   Container(
                     padding: const EdgeInsets.all(AppConstants.smallPadding),
                     decoration: BoxDecoration(
-                      color: Colors.blue.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(
-                        AppConstants.smallPadding,
-                      ),
-                      border: Border.all(
-                        color: Colors.blue.withValues(alpha: 0.3),
-                      ),
+                      color: AppColors.skyDim,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.sky.withValues(alpha: 0.3)),
                     ),
                     child: Row(
                       children: [
-                        Icon(
-                          Icons.info_outline,
-                          color: Colors.blue.shade700,
-                          size: 16,
-                        ),
-                        const SizedBox(width: AppConstants.smallPadding),
+                        const Icon(Icons.info_outline_rounded, color: AppColors.sky, size: 14),
+                        const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'Existing rows at this position and below will be moved down.',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.blue.shade700,
-                            ),
+                            'Rows at this position and below will be moved down.',
+                            style: TextStyle(fontSize: 12, color: AppColors.sky.withValues(alpha: 0.9)),
                           ),
                         ),
                       ],
@@ -151,17 +140,18 @@ class _AddRowDialogState extends State<AddRowDialog> {
           BlocBuilder<EventDetailCubit, EventDetailState>(
             builder: (context, state) {
               final isLoading = state is EventDetailSaving;
-
               return ElevatedButton(
                 onPressed: isLoading ? null : _addRow,
-                child:
-                    isLoading
-                        ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                        : const Text('Add Row'),
+                child: isLoading
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.onGold,
+                        ),
+                      )
+                    : const Text('Add Row'),
               );
             },
           ),
@@ -182,5 +172,71 @@ class _AddRowDialogState extends State<AddRowDialog> {
         setState(() => _pendingSave = false);
       }
     }
+  }
+}
+
+class _RowOption extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final bool value;
+  final bool groupValue;
+  final ValueChanged<bool?> onChanged;
+
+  const _RowOption({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.value,
+    required this.groupValue,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isSelected = value == groupValue;
+    return GestureDetector(
+      onTap: () => onChanged(value),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.gold.withValues(alpha: 0.1) : AppColors.bgDeep,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isSelected ? AppColors.gold.withValues(alpha: 0.4) : AppColors.border,
+          ),
+        ),
+        child: Row(
+          children: [
+            Radio<bool>(
+              value: value,
+              groupValue: groupValue,
+              onChanged: onChanged,
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              visualDensity: VisualDensity.compact,
+            ),
+            const SizedBox(width: 8),
+            Icon(icon, size: 18, color: isSelected ? AppColors.gold : AppColors.textSecondary),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      color: isSelected ? AppColors.textPrimary : AppColors.textSecondary,
+                    ),
+                  ),
+                  Text(subtitle, style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
