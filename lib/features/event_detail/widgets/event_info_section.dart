@@ -257,5 +257,6 @@ class _SubtleGridPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _SubtleGridPainter oldDelegate) =>
+      oldDelegate.color != color;
 }

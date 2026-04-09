@@ -459,17 +459,26 @@ class _AppBarIconButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Tooltip(
       message: tooltip,
-      child: GestureDetector(
-        onTap: onPressed,
-        child: Container(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(
-            color: AppColors.bgCard,
+      child: Semantics(
+        button: true,
+        label: tooltip,
+        child: Material(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+          child: InkWell(
+            onTap: onPressed,
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: AppColors.border),
+            child: Ink(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: AppColors.bgCard,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Icon(icon, size: 18, color: AppColors.textPrimary),
+            ),
           ),
-          child: Icon(icon, size: 18, color: AppColors.textPrimary),
         ),
       ),
     );

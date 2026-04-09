@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:developer';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uuid/uuid.dart';
@@ -16,6 +15,10 @@ class EventDetailCubit extends Cubit<EventDetailState> {
   /// Used by [updateCell] so cell edits are never dropped while a structural
   /// save has temporarily moved the state to [EventDetailSaving].
   EventDetailLoaded? _lastLoaded;
+
+  /// Serialises background totals-persist calls so that a slower earlier
+  /// write can never overwrite the result of a faster later write.
+  Future<void> _totalsPersistFuture = Future.value();
 
   EventDetailCubit({required EventRepository repository})
       : _repository = repository,
@@ -301,11 +304,13 @@ class EventDetailCubit extends Cubit<EventDetailState> {
           loadedState.columns,
           loadedState.event.id,
         );
-        // Persist the new totals to DB in the background (fire and forget).
-        unawaited(
-          _repository.updateEventTotals(updatedTotals).catchError(
-            (Object e) => log('Background totals persist failed: $e'),
-          ),
+        // Persist totals to DB in the background.  Writes are chained so an
+        // older slow write can never overwrite the result of a newer one.
+        final totalsToSave = updatedTotals;
+        _totalsPersistFuture = _totalsPersistFuture.whenComplete(
+          () => _repository
+              .updateEventTotals(totalsToSave)
+              .catchError((Object e) => log('Background totals persist failed: $e')),
         );
       }
 

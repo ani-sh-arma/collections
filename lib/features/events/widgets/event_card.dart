@@ -233,7 +233,8 @@ class _DotPatternPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _DotPatternPainter oldDelegate) =>
+      oldDelegate.color != color;
 }
 
 // ── Action menu ───────────────────────────────────────────────────────────────

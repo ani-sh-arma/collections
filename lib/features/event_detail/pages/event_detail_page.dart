@@ -124,9 +124,15 @@ class _EventDetailViewState extends State<EventDetailView> {
 
           // Content
           Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(16, 20, 16, 120),
-              child: Column(
+            child: RefreshIndicator(
+              color: AppColors.gold,
+              backgroundColor: AppColors.bgCard,
+              onRefresh: () =>
+                  context.read<EventDetailCubit>().refreshEventDetail(),
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(16, 20, 16, 120),
+                child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // ── Section header: Collection Data ──────────────────────
@@ -217,6 +223,7 @@ class _EventDetailViewState extends State<EventDetailView> {
               ),
             ),
           ),
+        ),
         ],
       ),
       floatingActionButton: state.isLocked
