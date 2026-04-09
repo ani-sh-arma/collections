@@ -11,6 +11,11 @@ class EventDetailCubit extends Cubit<EventDetailState> {
   final EventRepository _repository;
   String? _currentEventId;
 
+  /// Cached copy of the most recent [EventDetailLoaded] state.
+  /// Used by [updateCell] so cell edits are never dropped while a structural
+  /// save has temporarily moved the state to [EventDetailSaving].
+  EventDetailLoaded? _lastLoaded;
+
   EventDetailCubit({required EventRepository repository})
       : _repository = repository,
         super(const EventDetailInitial());
@@ -55,15 +60,15 @@ class EventDetailCubit extends Cubit<EventDetailState> {
     final cells = await _repository.getEventCells(eventId);
     final totals = await _repository.getEventTotals(eventId);
 
-    emit(
-      EventDetailLoaded(
+    final loaded = EventDetailLoaded(
         event: eventData,
         columns: columns,
         rows: rows,
         cells: cells,
         totals: totals,
-      ),
-    );
+      );
+    _lastLoaded = loaded;
+    emit(loaded);
   }
 
   Future<void> updateEventInfo(Event event) async {
@@ -246,7 +251,12 @@ class EventDetailCubit extends Cubit<EventDetailState> {
 
   Future<void> updateCell(Cell cell) async {
     final currentState = state;
-    if (currentState is! EventDetailLoaded) return;
+    // Also allow cell edits while a structural save is in progress by falling
+    // back to the cached loaded state so edits are never silently dropped.
+    final loadedState = currentState is EventDetailLoaded
+        ? currentState
+        : _lastLoaded;
+    if (loadedState == null) return;
 
     try {
       final existingCell = await _repository.getCell(cell.rowId, cell.columnId);
@@ -268,15 +278,23 @@ class EventDetailCubit extends Cubit<EventDetailState> {
         await _repository.createCell(cellToSave);
       }
 
-      // Optimistically update the local state.
-      final updatedCells = currentState.cells
-          .where((c) => !(c.rowId == cellToSave.rowId && c.columnId == cellToSave.columnId))
-          .toList();
-      updatedCells.add(cellToSave);
+      // Replace the existing cell (if any) and append the new value in one pass.
+      final updatedCells = [
+        for (final c in loadedState.cells)
+          if (c.rowId != cellToSave.rowId || c.columnId != cellToSave.columnId) c,
+        cellToSave,
+      ];
 
-      emit(currentState.copyWith(cells: updatedCells));
+      final updatedLoaded = loadedState.copyWith(cells: updatedCells);
+      _lastLoaded = updatedLoaded;
+      // Only emit if we're not in the middle of a structural save.
+      // When saving, the pending _quietRefresh() will pick up the cell
+      // change from DB and emit a fresh EventDetailLoaded with all changes.
+      if (currentState is EventDetailLoaded) {
+        emit(updatedLoaded);
+      }
 
-      final column = currentState.getColumnById(cell.columnId);
+      final column = loadedState.getColumnById(cell.columnId);
       if (column != null &&
           (column.key == AppConstants.amountColumnKey ||
               column.key == AppConstants.onlineColumnKey)) {

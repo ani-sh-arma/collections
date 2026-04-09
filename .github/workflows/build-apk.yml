@@ -53,11 +53,9 @@ jobs:
 
       - name: Generate Drift code (if needed)
         run: dart run build_runner build --delete-conflicting-outputs
-        continue-on-error: true
 
       - name: Analyze code
         run: flutter analyze --no-fatal-infos
-        continue-on-error: true
 
       - name: Build release APK
         run: flutter build apk --release --split-per-abi
