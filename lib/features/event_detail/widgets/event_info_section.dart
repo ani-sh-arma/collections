@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/models/models.dart';
 import '../../../constants/app_constants.dart';
+import '../../../constants/colors.dart';
 import '../../../utils/gradient_generator.dart';
 
 class EventInfoSection extends StatelessWidget {
@@ -25,156 +26,236 @@ class EventInfoSection extends StatelessWidget {
     );
 
     return Container(
-      padding: EdgeInsets.only(top: 40),
       width: double.infinity,
       decoration: BoxDecoration(gradient: gradient),
-      child: Padding(
-        padding: const EdgeInsets.all(AppConstants.padding),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Row(
+      child: Stack(
+        children: [
+          // Background dot pattern for texture
+          Positioned.fill(
+            child: CustomPaint(
+              painter: _SubtleGridPainter(textColor),
+            ),
+          ),
+          SafeArea(
+            bottom: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // ── Navigation row ──────────────────────────────────────
+                  Row(
                     children: [
-                      InkWell(
+                      _NavButton(
+                        icon: Icons.arrow_back_ios_new_rounded,
+                        color: textColor,
                         onTap: () => Navigator.of(context).pop(),
-                        child: Icon(Icons.arrow_back),
                       ),
-                      const SizedBox(width: 10),
-                      Text(
-                        event.title,
-                        style: Theme.of(
-                          context,
-                        ).textTheme.headlineSmall?.copyWith(
-                          color: textColor,
-                          fontWeight: FontWeight.bold,
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          event.title,
+                          style: TextStyle(
+                            color: textColor,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.3,
+                            height: 1.2,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(width: 8),
+                      // Lock / unlock button
+                      _LockButton(event: event, textColor: textColor),
+                    ],
+                  ),
+
+                  const SizedBox(height: 14),
+
+                  // ── Date ────────────────────────────────────────────────
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.calendar_today_rounded,
+                        color: textColor.withValues(alpha: 0.7),
+                        size: 14,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        DateFormat('EEEE, MMM dd, yyyy').format(event.date),
+                        style: TextStyle(
+                          color: textColor.withValues(alpha: 0.9),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ],
                   ),
-                ),
-                InkWell(
-                  onTap: () {
-                    context.read<EventDetailCubit>().toggleEventLock();
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppConstants.smallPadding,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: textColor.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(
-                        AppConstants.smallPadding,
-                      ),
-                      border: Border.all(
-                        color: textColor.withValues(alpha: 0.3),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
+
+                  // ── Description ──────────────────────────────────────────
+                  if (event.description.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Icon(
-                          event.locked ? Icons.lock : Icons.lock_open,
-                          color: textColor,
-                          size: 16,
+                          Icons.notes_rounded,
+                          color: textColor.withValues(alpha: 0.6),
+                          size: 14,
                         ),
-                        const SizedBox(width: 4),
-                        Text(
-                          event.locked ? 'Locked' : 'Unlocked',
-                          style: Theme.of(
-                            context,
-                          ).textTheme.bodySmall?.copyWith(
-                            color: textColor,
-                            fontWeight: FontWeight.w500,
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            event.description,
+                            style: TextStyle(
+                              color: textColor.withValues(alpha: 0.75),
+                              fontSize: 12,
+                              height: 1.5,
+                            ),
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],
                     ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppConstants.smallPadding),
-            Row(
-              children: [
-                Icon(
-                  Icons.calendar_today,
-                  color: textColor.withValues(alpha: 0.8),
-                  size: 16,
-                ),
-                const SizedBox(width: AppConstants.smallPadding),
-                Text(
-                  DateFormat('EEEE, MMM dd, yyyy').format(event.date),
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: textColor.withValues(alpha: 0.9),
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-            if (event.description.isNotEmpty) ...[
-              const SizedBox(height: AppConstants.smallPadding),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(
-                    Icons.description,
-                    color: textColor.withValues(alpha: 0.8),
-                    size: 16,
-                  ),
-                  const SizedBox(width: AppConstants.smallPadding),
-                  Expanded(
-                    child: Text(
-                      event.description,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: textColor.withValues(alpha: 0.8),
+                  ],
+
+                  // ── Locked message ───────────────────────────────────────
+                  if (event.locked) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
                       ),
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-            if (event.locked) ...[
-              const SizedBox(height: AppConstants.padding),
-              Container(
-                padding: const EdgeInsets.all(AppConstants.smallPadding),
-                decoration: BoxDecoration(
-                  color: textColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(
-                    AppConstants.smallPadding,
-                  ),
-                  border: Border.all(color: textColor.withValues(alpha: 0.2)),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.info_outline,
-                      color: textColor.withValues(alpha: 0.8),
-                      size: 16,
-                    ),
-                    const SizedBox(width: AppConstants.smallPadding),
-                    Expanded(
-                      child: Text(
-                        AppConstants.lockedMessage,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: textColor.withValues(alpha: 0.8),
+                      decoration: BoxDecoration(
+                        color: textColor.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: textColor.withValues(alpha: 0.2),
                         ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.info_outline_rounded,
+                            color: textColor.withValues(alpha: 0.8),
+                            size: 14,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              AppConstants.lockedMessage,
+                              style: TextStyle(
+                                color: textColor.withValues(alpha: 0.8),
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
-                ),
+                ],
               ),
-            ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NavButton extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _NavButton({
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: color.withValues(alpha: 0.2)),
+        ),
+        child: Icon(icon, color: color, size: 16),
+      ),
+    );
+  }
+}
+
+class _LockButton extends StatelessWidget {
+  final Event event;
+  final Color textColor;
+
+  const _LockButton({required this.event, required this.textColor});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => context.read<EventDetailCubit>().toggleEventLock(),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: textColor.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: textColor.withValues(alpha: 0.25)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              event.locked ? Icons.lock_rounded : Icons.lock_open_rounded,
+              color: textColor,
+              size: 14,
+            ),
+            const SizedBox(width: 5),
+            Text(
+              event.locked ? 'Locked' : 'Unlocked',
+              style: TextStyle(
+                color: textColor,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ],
         ),
       ),
     );
   }
+}
+
+class _SubtleGridPainter extends CustomPainter {
+  final Color color;
+  _SubtleGridPainter(this.color);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color.withValues(alpha: 0.04)
+      ..style = PaintingStyle.fill;
+    const spacing = 20.0;
+    const r = 1.2;
+    for (double x = 0; x < size.width; x += spacing) {
+      for (double y = 0; y < size.height; y += spacing) {
+        canvas.drawCircle(Offset(x, y), r, paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

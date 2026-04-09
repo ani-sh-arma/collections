@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/models/models.dart';
-import '../../../constants/app_constants.dart';
+import '../../../constants/colors.dart';
 
 class TotalsTable extends StatelessWidget {
   final EventTotals? totals;
@@ -11,128 +11,209 @@ class TotalsTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final effectiveTotals = totals ?? EventTotals.empty('');
+    final t = totals ?? EventTotals.empty('');
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Card(
-          elevation: 2,
-          child: Padding(
-            padding: const EdgeInsets.all(AppConstants.smallPadding),
-            child: Table(
-              border: TableBorder.all(color: Colors.grey.shade300, width: 1),
-              columnWidths: const {
-                0: FixedColumnWidth(60),
-                1: FlexColumnWidth(2),
-                2: FlexColumnWidth(1),
-              },
+        // ── Three summary cards ──────────────────────────────────────────────
+        Row(
+          children: [
+            // Online
+            Expanded(
+              child: _SummaryCard(
+                label: 'ONLINE',
+                amount: t.onlineTotal,
+                icon: Icons.wifi_rounded,
+                accentColor: AppColors.sky,
+                dimColor: AppColors.skyDim,
+              ),
+            ),
+            const SizedBox(width: 10),
+            // Offline
+            Expanded(
+              child: _SummaryCard(
+                label: 'OFFLINE',
+                amount: t.offlineTotal,
+                icon: Icons.money_rounded,
+                accentColor: AppColors.emerald,
+                dimColor: AppColors.emeraldDim,
+              ),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 10),
+
+        // ── Grand total card ─────────────────────────────────────────────────
+        _GrandTotalCard(amount: t.grandTotal),
+
+        // ── Last updated ─────────────────────────────────────────────────────
+        if (totals != null && totals!.eventId.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              const Icon(Icons.access_time_rounded, size: 12, color: AppColors.textMuted),
+              const SizedBox(width: 4),
+              Text(
+                'Updated ${DateFormat('MMM dd, HH:mm').format(totals!.updatedAt)}',
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: AppColors.textMuted,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _SummaryCard extends StatelessWidget {
+  final String label;
+  final double amount;
+  final IconData icon;
+  final Color accentColor;
+  final Color dimColor;
+
+  const _SummaryCard({
+    required this.label,
+    required this.amount,
+    required this.icon,
+    required this.accentColor,
+    required this.dimColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final formatter = NumberFormat.currency(symbol: '₹', decimalDigits: 2);
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.bgCard,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: dimColor,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, color: accentColor, size: 14),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: TextStyle(
+                  color: accentColor,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.2,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            formatter.format(amount),
+            style: const TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              fontFamily: 'monospace',
+              letterSpacing: -0.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GrandTotalCard extends StatelessWidget {
+  final double amount;
+
+  const _GrandTotalCard({required this.amount});
+
+  @override
+  Widget build(BuildContext context) {
+    final formatter = NumberFormat.currency(symbol: '₹', decimalDigits: 2);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF2A1900), Color(0xFF1A1200)],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.gold.withValues(alpha: 0.3)),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.gold.withValues(alpha: 0.1),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: AppColors.gold.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.gold.withValues(alpha: 0.3)),
+            ),
+            child: const Icon(
+              Icons.account_balance_wallet_rounded,
+              color: AppColors.gold,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header row
-                TableRow(
-                  children: [
-                    _buildHeaderCell('No.'),
-                    _buildHeaderCell('Source'),
-                    _buildHeaderCell('Amount'),
-                  ],
+                const Text(
+                  'GRAND TOTAL',
+                  style: TextStyle(
+                    color: AppColors.gold,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.5,
+                  ),
                 ),
-                // Online row
-                TableRow(
-                  children: [
-                    _buildDataCell('1'),
-                    _buildDataCell(AppConstants.onlineTotalLabel),
-                    _buildAmountCell(effectiveTotals.onlineTotal),
-                  ],
-                ),
-                // Offline row
-                TableRow(
-                  children: [
-                    _buildDataCell('2'),
-                    _buildDataCell(AppConstants.offlineTotalLabel),
-                    _buildAmountCell(effectiveTotals.offlineTotal),
-                  ],
-                ),
-                // Total row
-                TableRow(
-                  children: [
-                    _buildDataCell('3', isBold: true),
-                    _buildDataCell(AppConstants.grandTotalLabel, isBold: true),
-                    _buildAmountCell(effectiveTotals.grandTotal, isBold: true),
-                  ],
+                const SizedBox(height: 4),
+                Text(
+                  formatter.format(amount),
+                  style: const TextStyle(
+                    color: AppColors.goldLight,
+                    fontSize: 26,
+                    fontWeight: FontWeight.w800,
+                    fontFamily: 'monospace',
+                    letterSpacing: -1,
+                  ),
                 ),
               ],
             ),
           ),
-        ),
-        const SizedBox(height: AppConstants.smallPadding),
-
-        _buildLastUpdated(effectiveTotals),
-        const SizedBox(height: 50),
-      ],
-    );
-  }
-
-  Widget _buildHeaderCell(String text) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      child: Text(
-        text,
-        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-        textAlign: TextAlign.center,
+        ],
       ),
-    );
-  }
-
-  Widget _buildDataCell(String text, {bool isBold = false}) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-          fontSize: 14,
-        ),
-        textAlign: TextAlign.center,
-      ),
-    );
-  }
-
-  Widget _buildAmountCell(double amount, {bool isBold = false}) {
-    final formatter = NumberFormat.currency(symbol: '₹', decimalDigits: 2);
-
-    return Container(
-      padding: const EdgeInsets.all(12),
-      child: Text(
-        formatter.format(amount),
-        style: TextStyle(
-          fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-          fontSize: 14,
-          fontFamily: 'monospace',
-          color: isBold ? Colors.blue.shade700 : null,
-        ),
-        textAlign: TextAlign.right,
-      ),
-    );
-  }
-
-  Widget _buildLastUpdated(EventTotals totals) {
-    if (totals.eventId.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    return Row(
-      children: [
-        Icon(Icons.update, size: 14, color: Colors.grey.shade600),
-        const SizedBox(width: 4),
-        Text(
-          'Last updated: ${DateFormat('MMM dd, HH:mm').format(totals.updatedAt)}',
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey.shade600,
-            fontStyle: FontStyle.italic,
-          ),
-        ),
-      ],
     );
   }
 }

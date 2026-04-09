@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/models/models.dart';
 import '../../../constants/app_constants.dart';
+import '../../../constants/colors.dart';
 import '../../../utils/debouncer.dart';
 import '../cubit/event_detail_cubit.dart';
 
@@ -83,7 +84,6 @@ class _ReorderableCollectionTableState
   }
 
   void _updateControllers() {
-    // Compute the set of keys that should exist.
     final validKeys = <String>{};
 
     for (final row in widget.rows) {
@@ -93,20 +93,16 @@ class _ReorderableCollectionTableState
           validKeys.add(key);
 
           if (!_controllers.containsKey(key)) {
-            // New row/column combination — create a fresh controller.
             final cell = _getCell(row.id, column.id);
             _controllers[key] = TextEditingController(
               text: cell?.displayValue ?? '',
             );
             _debouncers[key] = Debouncer(delay: AppConstants.autosaveDelay);
           }
-          // Existing controllers are never updated from DB — the user's input is
-          // the source of truth for text/number cells in this local-first app.
         }
       }
     }
 
-    // Dispose and remove controllers for rows/columns that no longer exist.
     final staleKeys = _controllers.keys
         .where((key) => !validKeys.contains(key))
         .toList();
@@ -132,17 +128,19 @@ class _ReorderableCollectionTableState
       return _buildEmptyState();
     }
 
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(AppConstants.smallPadding),
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.bgCard,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
         child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Column(
             children: [
-              // Header row
               _buildHeaderRow(),
-              // Reorderable rows
               if (!widget.isLocked)
                 _buildReorderableRows()
               else
@@ -155,44 +153,56 @@ class _ReorderableCollectionTableState
   }
 
   Widget _buildEmptyState() {
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(AppConstants.largePadding),
-        child: Column(
-          children: [
-            Icon(Icons.table_chart, size: 48, color: Colors.grey.shade400),
-            const SizedBox(height: AppConstants.padding),
-            Text(
-              AppConstants.emptyTableMessage,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyLarge?.copyWith(color: Colors.grey.shade600),
-              textAlign: TextAlign.center,
+    return Container(
+      padding: const EdgeInsets.all(40),
+      decoration: BoxDecoration(
+        color: AppColors.bgCard,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              color: AppColors.bgElevated,
+              borderRadius: BorderRadius.circular(16),
             ),
-          ],
-        ),
+            child: const Icon(Icons.table_chart_outlined, size: 30, color: AppColors.textMuted),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            AppConstants.emptyTableMessage,
+            style: TextStyle(color: AppColors.textSecondary, fontSize: 14, height: 1.5),
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildHeaderRow() {
     return Container(
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.shade300),
-      ),
+      color: AppColors.bgElevated,
       child: Row(
         children: [
-          const SizedBox(width: 40),
+          // Drag handle space
+          Container(
+            width: 40,
+            height: 44,
+            decoration: const BoxDecoration(
+              border: Border(right: BorderSide(color: AppColors.border)),
+            ),
+          ),
           ...widget.columns.map((column) {
             return SizedBox(
               width: 120,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                decoration: BoxDecoration(
-                  border: Border(
-                    right: BorderSide(color: Colors.grey.shade300),
-                  ),
+                height: 44,
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                decoration: const BoxDecoration(
+                  border: Border(right: BorderSide(color: AppColors.border)),
                 ),
                 child: _buildColumnHeader(column),
               ),
@@ -204,55 +214,75 @@ class _ReorderableCollectionTableState
   }
 
   Widget _buildColumnHeader(EventColumn column) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
+    return Align(
+      alignment: Alignment.centerLeft,
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (column.label == '+')
-            const SizedBox.shrink()
-          else
+          if (column.key == AppConstants.addColumnKey && !widget.isLocked)
+            IconButton(
+              onPressed: _showAddColumnDialog,
+              icon: const Icon(Icons.add_rounded, color: AppColors.gold),
+              iconSize: 18,
+            )
+          else ...[
             Expanded(
               child: Text(
                 column.label,
                 style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12,
+                  color: AppColors.textSecondary,
+                  letterSpacing: 0.8,
                 ),
                 textAlign: TextAlign.center,
               ),
             ),
-          if (column.key == AppConstants.addColumnKey && !widget.isLocked)
-            Expanded(
-              child: InkWell(
-                onTap: _showAddColumnDialog,
-                child: const Icon(Icons.add),
+            if (!column.fixed && !widget.isLocked)
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert_rounded, size: 14, color: AppColors.textMuted),
+                onSelected: (value) => _handleColumnAction(column, value),
+                itemBuilder: (context) => [
+                  const PopupMenuItem(
+                    value: 'rename',
+                    child: Row(children: [
+                      Icon(Icons.edit_outlined, size: 16, color: AppColors.textSecondary),
+                      SizedBox(width: 10),
+                      Text('Rename', style: TextStyle(color: AppColors.textPrimary)),
+                    ]),
+                  ),
+                  const PopupMenuItem(
+                    value: 'delete',
+                    child: Row(children: [
+                      Icon(Icons.delete_outline_rounded, size: 16, color: AppColors.rose),
+                      SizedBox(width: 10),
+                      Text('Delete', style: TextStyle(color: AppColors.rose)),
+                    ]),
+                  ),
+                ],
               ),
-            )
-          else if (!column.fixed && !widget.isLocked)
-            PopupMenuButton<String>(
-              icon: const Icon(Icons.more_vert, size: 16),
-              onSelected: (value) => _handleColumnAction(column, value),
-              itemBuilder:
-                  (context) => [
-                    const PopupMenuItem(value: 'rename', child: Text('Rename')),
-                    const PopupMenuItem(value: 'delete', child: Text('Delete')),
-                  ],
-            ),
+          ],
         ],
       ),
     );
   }
 
   Widget _buildReorderableRows() {
-    final tableWidth = 40 + widget.columns.length * 120;
+    final colCount = widget.columns.length;
+    final tableWidth = 40.0 + colCount * 120.0;
     return SizedBox(
-      width: tableWidth.toDouble(),
+      width: tableWidth,
       child: ReorderableListView.builder(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         itemCount: widget.rows.length,
         onReorder: _onReorder,
+        proxyDecorator: (child, index, animation) => Material(
+          color: AppColors.bgElevated,
+          elevation: 4,
+          shadowColor: Colors.black54,
+          child: child,
+        ),
         itemBuilder: (context, index) {
           final row = widget.rows[index];
           return _buildReorderableRow(row, index, Key(row.id));
@@ -263,43 +293,35 @@ class _ReorderableCollectionTableState
 
   Widget _buildStaticRows() {
     return Column(
-      children:
-          widget.rows.asMap().entries.map((entry) {
-            final index = entry.key;
-            final row = entry.value;
-            return _buildStaticRow(row, index);
-          }).toList(),
+      children: widget.rows.asMap().entries.map((entry) {
+        return _buildStaticRow(entry.value, entry.key);
+      }).toList(),
     );
   }
 
   Widget _buildReorderableRow(EventRow row, int index, Key key) {
+    final isOdd = index.isOdd;
     return Container(
       key: key,
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.shade300),
-      ),
+      color: isOdd ? AppColors.bgDeep.withValues(alpha: 0.6) : null,
       child: Row(
         children: [
-          // Drag handle
           Container(
-            width: 38,
-            height: 56,
-            decoration: BoxDecoration(
-              border: Border(right: BorderSide(color: Colors.grey.shade300)),
+            width: 40,
+            height: 52,
+            decoration: const BoxDecoration(
+              border: Border(right: BorderSide(color: AppColors.border)),
             ),
-            child: const Icon(Icons.drag_handle, color: Colors.grey, size: 20),
+            child: const Icon(Icons.drag_handle_rounded, color: AppColors.textMuted, size: 18),
           ),
-          // Row cells
           ...widget.columns.map((column) {
             return SizedBox(
               width: 120,
               child: Container(
-                height: 56,
+                height: 52,
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  border: Border(
-                    right: BorderSide(color: Colors.grey.shade300),
-                  ),
+                decoration: const BoxDecoration(
+                  border: Border(right: BorderSide(color: AppColors.border)),
                 ),
                 child: _buildCell(row, column, index),
               ),
@@ -311,23 +333,20 @@ class _ReorderableCollectionTableState
   }
 
   Widget _buildStaticRow(EventRow row, int index) {
+    final isOdd = index.isOdd;
     return Container(
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.shade300),
-      ),
+      color: isOdd ? AppColors.bgDeep.withValues(alpha: 0.6) : null,
       child: Row(
         children: [
-          const SizedBox(width: 50),
+          const SizedBox(width: 40),
           ...widget.columns.map((column) {
             return SizedBox(
               width: 120,
               child: Container(
-                height: 56,
+                height: 52,
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  border: Border(
-                    right: BorderSide(color: Colors.grey.shade300),
-                  ),
+                decoration: const BoxDecoration(
+                  border: Border(right: BorderSide(color: AppColors.border)),
                 ),
                 child: _buildCell(row, column, index),
               ),
@@ -340,7 +359,6 @@ class _ReorderableCollectionTableState
 
   Widget _buildCell(EventRow row, EventColumn column, int rowIndex) {
     final cell = _getCell(row.id, column.id);
-
     switch (column.type) {
       case ColumnType.serial:
         return _buildSerialCell(rowIndex);
@@ -356,33 +374,35 @@ class _ReorderableCollectionTableState
   }
 
   Widget _buildSerialCell(int index) {
-    return Container(
-      alignment: Alignment.center,
+    return Center(
       child: Text(
         '${index + 1}',
-        style: const TextStyle(fontWeight: FontWeight.w500, color: Colors.grey),
+        style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.textMuted, fontSize: 13),
       ),
     );
   }
 
   Widget _buildTextCell(EventRow row, EventColumn column, Cell? cell) {
     if (widget.isLocked) {
-      return Container(
+      return Align(
         alignment: Alignment.centerLeft,
-        child: Text(cell?.textValue ?? ''),
+        child: Text(cell?.textValue ?? '', style: const TextStyle(color: AppColors.textPrimary)),
       );
     }
 
     final key = '${row.id}_${column.id}';
     final controller = _controllers[key];
-
     if (controller == null) return const SizedBox.shrink();
 
     return TextField(
       controller: controller,
+      style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
       decoration: const InputDecoration(
         border: InputBorder.none,
-        contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        enabledBorder: InputBorder.none,
+        focusedBorder: InputBorder.none,
+        fillColor: Colors.transparent,
+        contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 4),
       ),
       onChanged: (value) {
         _debouncers[key]?.call(() {
@@ -409,32 +429,32 @@ class _ReorderableCollectionTableState
       final displayText = num != null
           ? (num == num.truncateToDouble() ? num.toInt().toString() : num.toString())
           : '';
-      return Container(
+      return Align(
         alignment: Alignment.centerRight,
         child: Text(
           displayText,
-          style: const TextStyle(fontFamily: 'monospace'),
+          style: const TextStyle(fontFamily: 'monospace', color: AppColors.textPrimary, fontSize: 14, fontWeight: FontWeight.w500),
         ),
       );
     }
 
     final key = '${row.id}_${column.id}';
     final controller = _controllers[key];
-
     if (controller == null) return const SizedBox.shrink();
 
     return TextField(
       controller: controller,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      inputFormatters: [
-        FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
-      ],
+      inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))],
+      style: const TextStyle(fontFamily: 'monospace', color: AppColors.textPrimary, fontSize: 14, fontWeight: FontWeight.w500),
       decoration: const InputDecoration(
         border: InputBorder.none,
-        contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        enabledBorder: InputBorder.none,
+        focusedBorder: InputBorder.none,
+        fillColor: Colors.transparent,
+        contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 4),
       ),
       textAlign: TextAlign.right,
-      style: const TextStyle(fontFamily: 'monospace'),
       onChanged: (value) {
         _debouncers[key]?.call(() {
           final numValue = double.tryParse(value) ?? 0.0;
@@ -458,49 +478,48 @@ class _ReorderableCollectionTableState
 
   Widget _buildBooleanCell(EventRow row, EventColumn column, Cell? cell) {
     final isChecked = cell?.boolValue ?? false;
-
-    return Checkbox(
-      value: isChecked,
-      onChanged:
-          widget.isLocked
-              ? null
-              : (value) {
+    return Center(
+      child: Checkbox(
+        value: isChecked,
+        onChanged: widget.isLocked
+            ? null
+            : (value) {
                 context.read<EventDetailCubit>().updateCellBool(
                   rowId: row.id,
                   columnId: column.id,
                   value: value ?? false,
                 );
               },
+      ),
     );
   }
 
   Widget _buildActionCell(EventRow row) {
-    if (widget.isLocked) {
-      return const SizedBox.shrink();
-    }
-
+    if (widget.isLocked) return const SizedBox.shrink();
     return PopupMenuButton<String>(
-      icon: const Icon(Icons.more_horiz, size: 16),
+      icon: const Icon(Icons.more_horiz_rounded, size: 16, color: AppColors.textMuted),
       onSelected: (value) => _handleRowAction(row, value),
-      itemBuilder:
-          (context) => [
-            const PopupMenuItem(value: 'delete', child: Text('Delete Row')),
-          ],
+      itemBuilder: (context) => [
+        const PopupMenuItem(
+          value: 'delete',
+          child: Row(children: [
+            Icon(Icons.delete_outline_rounded, size: 16, color: AppColors.rose),
+            SizedBox(width: 10),
+            Text('Delete Row', style: TextStyle(color: AppColors.rose)),
+          ]),
+        ),
+      ],
     );
   }
 
   void _onReorder(int oldIndex, int newIndex) {
-    if (oldIndex < newIndex) {
-      newIndex -= 1;
-    }
-
+    if (oldIndex < newIndex) newIndex -= 1;
     final reorderedRows = List<EventRow>.from(widget.rows);
     final item = reorderedRows.removeAt(oldIndex);
     reorderedRows.insert(newIndex, item);
-
-    // Update positions and send to BLoC
-    final rowIds = reorderedRows.map((row) => row.id).toList();
-    context.read<EventDetailCubit>().reorderRows(rowIds);
+    context.read<EventDetailCubit>().reorderRows(
+      reorderedRows.map((row) => row.id).toList(),
+    );
   }
 
   void _handleColumnAction(EventColumn column, String action) {
@@ -515,115 +534,118 @@ class _ReorderableCollectionTableState
   }
 
   void _handleRowAction(EventRow row, String action) {
-    switch (action) {
-      case 'delete':
-        _showDeleteRowConfirmation(row);
-        break;
-    }
+    if (action == 'delete') _showDeleteRowConfirmation(row);
   }
 
   void _showAddColumnDialog() {
     showDialog(
       context: context,
-      builder:
-          (dialogContext) => BlocProvider.value(
-            value: context.read<EventDetailCubit>(),
-            child: const AddColumnDialog(),
-          ),
+      builder: (dialogContext) => BlocProvider.value(
+        value: context.read<EventDetailCubit>(),
+        child: const AddColumnDialog(),
+      ),
     );
   }
 
   void _showRenameColumnDialog(EventColumn column) {
     final controller = TextEditingController(text: column.label);
+    final cubit = context.read<EventDetailCubit>();
 
     showDialog(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Rename Column'),
-            content: TextField(
-              controller: controller,
-              decoration: const InputDecoration(
-                labelText: 'Column Name',
-                border: OutlineInputBorder(),
-              ),
-              autofocus: true,
+      builder: (dialogContext) => BlocProvider.value(
+        value: cubit,
+        child: AlertDialog(
+          title: const Text('Rename Column'),
+          content: TextField(
+            controller: controller,
+            style: const TextStyle(color: AppColors.textPrimary),
+            decoration: const InputDecoration(
+              labelText: 'Column Name',
+              prefixIcon: Icon(Icons.edit_outlined),
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Cancel'),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  final newLabel = controller.text.trim();
-                  if (newLabel.isNotEmpty && newLabel != column.label) {
-                    context.read<EventDetailCubit>().updateColumn(
-                      column.copyWith(label: newLabel),
-                    );
-                  }
-                  Navigator.of(context).pop();
-                },
-                child: const Text('Rename'),
-              ),
-            ],
+            autofocus: true,
           ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final newLabel = controller.text.trim();
+                if (newLabel.isNotEmpty && newLabel != column.label) {
+                  cubit.updateColumn(column.copyWith(label: newLabel));
+                }
+                Navigator.of(dialogContext).pop();
+              },
+              child: const Text('Rename'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
   void _showDeleteColumnConfirmation(EventColumn column) {
+    final cubit = context.read<EventDetailCubit>();
     showDialog(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Delete Column'),
-            content: const Text(AppConstants.deleteColumnConfirmation),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Cancel'),
+      builder: (dialogContext) => BlocProvider.value(
+        value: cubit,
+        child: AlertDialog(
+          title: const Text('Delete Column'),
+          content: const Text(AppConstants.deleteColumnConfirmation),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                cubit.deleteColumn(column.id);
+                Navigator.of(dialogContext).pop();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.rose,
+                foregroundColor: Colors.white,
               ),
-              ElevatedButton(
-                onPressed: () {
-                  context.read<EventDetailCubit>().deleteColumn(column.id);
-                  Navigator.of(context).pop();
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  foregroundColor: Colors.white,
-                ),
-                child: const Text('Delete'),
-              ),
-            ],
-          ),
+              child: const Text('Delete'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
   void _showDeleteRowConfirmation(EventRow row) {
+    final cubit = context.read<EventDetailCubit>();
     showDialog(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Delete Row'),
-            content: const Text(AppConstants.deleteRowConfirmation),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Cancel'),
+      builder: (dialogContext) => BlocProvider.value(
+        value: cubit,
+        child: AlertDialog(
+          title: const Text('Delete Row'),
+          content: const Text(AppConstants.deleteRowConfirmation),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                cubit.deleteRow(row.id);
+                Navigator.of(dialogContext).pop();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.rose,
+                foregroundColor: Colors.white,
               ),
-              ElevatedButton(
-                onPressed: () {
-                  context.read<EventDetailCubit>().deleteRow(row.id);
-                  Navigator.of(context).pop();
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  foregroundColor: Colors.white,
-                ),
-                child: const Text('Delete'),
-              ),
-            ],
-          ),
+              child: const Text('Delete'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

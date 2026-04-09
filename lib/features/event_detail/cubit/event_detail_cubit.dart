@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uuid/uuid.dart';
@@ -285,20 +286,33 @@ class EventDetailCubit extends Cubit<EventDetailState> {
         cellToSave,
       ];
 
-      final updatedLoaded = loadedState.copyWith(cells: updatedCells);
-      _lastLoaded = updatedLoaded;
-      // Only emit if we're not in the middle of a structural save.
-      // When saving, the pending _quietRefresh() will pick up the cell
-      // change from DB and emit a fresh EventDetailLoaded with all changes.
-      if (currentState is EventDetailLoaded) {
-        emit(updatedLoaded);
+      // Check if this cell affects totals
+      final column = loadedState.getColumnById(cell.columnId);
+      final affectsTotals = column != null &&
+          (column.key == AppConstants.amountColumnKey ||
+              column.key == AppConstants.onlineColumnKey);
+
+      // Compute new totals from in-memory cells immediately (no DB roundtrip).
+      // This makes the totals table update at the same moment as the cell save.
+      EventTotals? updatedTotals = loadedState.totals;
+      if (affectsTotals) {
+        updatedTotals = _computeTotalsFromCells(
+          updatedCells,
+          loadedState.columns,
+          loadedState.event.id,
+        );
+        // Persist the new totals to DB in the background.
+        unawaited(_repository.updateEventTotals(updatedTotals));
       }
 
-      final column = loadedState.getColumnById(cell.columnId);
-      if (column != null &&
-          (column.key == AppConstants.amountColumnKey ||
-              column.key == AppConstants.onlineColumnKey)) {
-        await recalculateTotals();
+      final updatedLoaded = loadedState.copyWith(
+        cells: updatedCells,
+        totals: updatedTotals,
+      );
+      _lastLoaded = updatedLoaded;
+      // Only emit if we're not in the middle of a structural save.
+      if (currentState is EventDetailLoaded) {
+        emit(updatedLoaded);
       }
     } catch (e) {
       emit(EventDetailError('Failed to update cell: ${e.toString()}'));
@@ -330,6 +344,49 @@ class EventDetailCubit extends Cubit<EventDetailState> {
   }) async {
     final cell = Cell(rowId: rowId, columnId: columnId).withBoolValue(value);
     await updateCell(cell);
+  }
+
+  /// Computes totals directly from the in-memory [cells] and [columns] lists,
+  /// avoiding a database roundtrip for an instant UI update.
+  EventTotals _computeTotalsFromCells(
+    List<Cell> cells,
+    List<EventColumn> columns,
+    String eventId,
+  ) {
+    EventColumn? amountCol;
+    EventColumn? onlineCol;
+    for (final col in columns) {
+      if (col.key == AppConstants.amountColumnKey) amountCol = col;
+      if (col.key == AppConstants.onlineColumnKey) onlineCol = col;
+    }
+
+    if (amountCol == null || onlineCol == null) {
+      return EventTotals.empty(eventId);
+    }
+
+    double onlineTotal = 0;
+    double offlineTotal = 0;
+
+    for (final amountCell in cells.where((c) => c.columnId == amountCol!.id)) {
+      final amount = amountCell.valueNumber ?? 0.0;
+      if (amount == 0.0) continue;
+      final onlineCell = cells.cast<Cell?>().firstWhere(
+        (c) => c?.rowId == amountCell.rowId && c?.columnId == onlineCol!.id,
+        orElse: () => null,
+      );
+      final isOnline = onlineCell?.boolValue ?? false;
+      if (isOnline) {
+        onlineTotal += amount;
+      } else {
+        offlineTotal += amount;
+      }
+    }
+
+    return EventTotals(
+      eventId: eventId,
+      onlineTotal: onlineTotal,
+      offlineTotal: offlineTotal,
+    );
   }
 
   Future<void> recalculateTotals() async {
