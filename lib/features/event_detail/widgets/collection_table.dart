@@ -106,10 +106,10 @@ class _CollectionTableState extends State<CollectionTable> {
     }
 
     // Dispose and remove controllers for rows/columns that no longer exist.
-    final stalledKeys = _controllers.keys
+    final staleKeys = _controllers.keys
         .where((key) => !validKeys.contains(key))
         .toList();
-    for (final key in stalledKeys) {
+    for (final key in staleKeys) {
       _controllers.remove(key)?.dispose();
       _debouncers.remove(key)?.dispose();
     }

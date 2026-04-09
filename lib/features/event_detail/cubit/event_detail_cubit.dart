@@ -251,16 +251,28 @@ class EventDetailCubit extends Cubit<EventDetailState> {
     try {
       final existingCell = await _repository.getCell(cell.rowId, cell.columnId);
 
+      final Cell cellToSave;
       if (existingCell != null) {
-        await _repository.updateCell(cell);
+        // Preserve the existing ID so the UPDATE query matches the DB row.
+        cellToSave = Cell(
+          id: existingCell.id,
+          rowId: cell.rowId,
+          columnId: cell.columnId,
+          valueText: cell.valueText,
+          valueNumber: cell.valueNumber,
+          valueBool: cell.valueBool,
+        );
+        await _repository.updateCell(cellToSave);
       } else {
-        await _repository.createCell(cell);
+        cellToSave = cell;
+        await _repository.createCell(cellToSave);
       }
 
+      // Optimistically update the local state.
       final updatedCells = currentState.cells
-          .where((c) => !(c.rowId == cell.rowId && c.columnId == cell.columnId))
+          .where((c) => !(c.rowId == cellToSave.rowId && c.columnId == cellToSave.columnId))
           .toList();
-      updatedCells.add(cell);
+      updatedCells.add(cellToSave);
 
       emit(currentState.copyWith(cells: updatedCells));
 
