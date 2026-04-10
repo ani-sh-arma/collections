@@ -121,6 +121,15 @@ class EventDetailSaving extends EventDetailState {
   List<Object?> get props => [operation];
 }
 
+class EventDetailSaveFailed extends EventDetailState {
+  final String message;
+
+  const EventDetailSaveFailed(this.message);
+
+  @override
+  List<Object?> get props => [message];
+}
+
 class EventDetailOperationSuccess extends EventDetailState {
   final String message;
 

@@ -25,6 +25,12 @@ class EventDetailCubit extends Cubit<EventDetailState> {
   /// In-memory state updates are always immediate; only the DB write is deferred.
   final Map<String, Timer> _cellPersistTimers = {};
 
+  /// Per-cell Future chains, keyed by 'rowId_columnId'.
+  /// Ensures that concurrent DB writes for the same cell are serialized: a new
+  /// write always waits for the previous one to finish before it starts,
+  /// preventing duplicate-insert races on the Cells table.
+  final Map<String, Future<void>> _cellPersistFutures = {};
+
   EventDetailCubit({required EventRepository repository})
       : _repository = repository,
         super(const EventDetailInitial());
@@ -35,6 +41,7 @@ class EventDetailCubit extends Cubit<EventDetailState> {
       timer.cancel();
     }
     _cellPersistTimers.clear();
+    _cellPersistFutures.clear();
     return super.close();
   }
 
@@ -313,7 +320,23 @@ class EventDetailCubit extends Cubit<EventDetailState> {
     final persistKey = '${cell.rowId}_${cell.columnId}';
     _cellPersistTimers[persistKey]?.cancel();
     _cellPersistTimers[persistKey] = Timer(AppConstants.autosaveDelay, () {
-      _persistCell(cell, affectsTotals: affectsTotals);
+      // Remove the completed timer entry immediately to prevent unbounded growth.
+      _cellPersistTimers.remove(persistKey);
+
+      // Chain onto any in-flight write for the same cell so concurrent persists
+      // for the same (rowId, columnId) are always serialized, preventing the
+      // duplicate-insert race that can occur when two writes hit the DB before
+      // the first one's getCell() round-trip completes.
+      final prevFuture = _cellPersistFutures[persistKey] ?? Future.value();
+      final nextFuture = prevFuture
+          .whenComplete(() => _persistCell(cell, affectsTotals: affectsTotals));
+      _cellPersistFutures[persistKey] = nextFuture;
+      nextFuture.whenComplete(() {
+        // Only clean up if no newer write has replaced this entry.
+        if (_cellPersistFutures[persistKey] == nextFuture) {
+          _cellPersistFutures.remove(persistKey);
+        }
+      });
     });
   }
 
@@ -377,6 +400,15 @@ class EventDetailCubit extends Cubit<EventDetailState> {
       }
     } catch (e) {
       log('Failed to persist cell: $e');
+      // Emit a non-disruptive notification so the user knows the background
+      // save failed.  The optimistic in-memory state is preserved so the UI
+      // remains consistent; the BlocBuilder ignores this state (via buildWhen)
+      // and the BlocListener shows it as a transient SnackBar.
+      if (!isClosed) {
+        emit(EventDetailSaveFailed(
+          'Auto-save failed. Please check your connection and try again.',
+        ));
+      }
     }
   }
 

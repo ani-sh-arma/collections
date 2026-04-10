@@ -65,6 +65,22 @@ class _EventDetailViewState extends State<EventDetailView> {
               margin: const EdgeInsets.all(16),
             ),
           );
+        } else if (state is EventDetailSaveFailed) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.warning_amber_rounded, color: AppColors.gold, size: 18),
+                  const SizedBox(width: 10),
+                  Expanded(child: Text(state.message)),
+                ],
+              ),
+              backgroundColor: AppColors.bgCard,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              margin: const EdgeInsets.all(16),
+            ),
+          );
         } else if (state is EventDetailOperationSuccess) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -86,6 +102,10 @@ class _EventDetailViewState extends State<EventDetailView> {
       child: BlocBuilder<EventDetailCubit, EventDetailState>(
         buildWhen: (previous, current) {
           if (current is EventDetailSaving) return false;
+          // Save-failure and operation-success are surfaced via the listener as
+          // transient SnackBars; the BlocBuilder must not rebuild for them so
+          // the table remains visible and the optimistic state is preserved.
+          if (current is EventDetailSaveFailed) return false;
           if (previous is EventDetailLoaded && current is EventDetailLoading) {
             return false;
           }
