@@ -1,4 +1,5 @@
 import 'package:collections/features/event_detail/cubit/event_detail_cubit.dart';
+import 'package:collections/features/event_detail/cubit/event_detail_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
@@ -14,14 +15,26 @@ class EventInfoSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Subscribe directly to the cubit so the lock button always reflects the
+    // latest state, even if the parent BlocBuilder skipped a rebuild.
+    return BlocSelector<EventDetailCubit, EventDetailState, Event?>(
+      selector: (state) => state is EventDetailLoaded ? state.event : null,
+      builder: (context, liveEvent) {
+        final displayEvent = liveEvent ?? event;
+        return _buildContent(context, displayEvent);
+      },
+    );
+  }
+
+  Widget _buildContent(BuildContext context, Event displayEvent) {
     final gradient = GradientGenerator.gradientFromHex(
-      event.gradientColorA,
-      event.gradientColorB,
+      displayEvent.gradientColorA,
+      displayEvent.gradientColorB,
     );
 
     final textColor = GradientGenerator.getTextColorForGradient(
-      event.gradientColorA,
-      event.gradientColorB,
+      displayEvent.gradientColorA,
+      displayEvent.gradientColorB,
     );
 
     return Container(
@@ -53,7 +66,7 @@ class EventInfoSection extends StatelessWidget {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          event.title,
+                          displayEvent.title,
                           style: TextStyle(
                             color: textColor,
                             fontSize: 20,
@@ -67,7 +80,7 @@ class EventInfoSection extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       // Lock / unlock button
-                      _LockButton(event: event, textColor: textColor),
+                      _LockButton(event: displayEvent, textColor: textColor),
                     ],
                   ),
 
@@ -83,7 +96,7 @@ class EventInfoSection extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        DateFormat('EEEE, MMM dd, yyyy').format(event.date),
+                        DateFormat('EEEE, MMM dd, yyyy').format(displayEvent.date),
                         style: TextStyle(
                           color: textColor.withValues(alpha: 0.9),
                           fontSize: 13,
@@ -94,7 +107,7 @@ class EventInfoSection extends StatelessWidget {
                   ),
 
                   // ── Description ──────────────────────────────────────────
-                  if (event.description.isNotEmpty) ...[
+                  if (displayEvent.description.isNotEmpty) ...[
                     const SizedBox(height: 8),
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -107,7 +120,7 @@ class EventInfoSection extends StatelessWidget {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            event.description,
+                            displayEvent.description,
                             style: TextStyle(
                               color: textColor.withValues(alpha: 0.75),
                               fontSize: 12,
@@ -122,7 +135,7 @@ class EventInfoSection extends StatelessWidget {
                   ],
 
                   // ── Locked message ───────────────────────────────────────
-                  if (event.locked) ...[
+                  if (displayEvent.locked) ...[
                     const SizedBox(height: 12),
                     Container(
                       padding: const EdgeInsets.symmetric(

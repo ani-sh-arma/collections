@@ -162,8 +162,57 @@ class _EventDetailViewState extends State<EventDetailView> {
                         ),
                       ),
 
+                      // Lock / unlock toggle — always visible so users can toggle
+                      // editing from the detail body without hunting in the header.
+                      GestureDetector(
+                        onTap: () =>
+                            context.read<EventDetailCubit>().toggleEventLock(),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: state.isLocked
+                                ? AppColors.gold.withValues(alpha: 0.15)
+                                : AppColors.bgElevated,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: state.isLocked
+                                  ? AppColors.gold.withValues(alpha: 0.4)
+                                  : AppColors.border,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                state.isLocked
+                                    ? Icons.lock_rounded
+                                    : Icons.lock_open_rounded,
+                                size: 14,
+                                color: state.isLocked
+                                    ? AppColors.gold
+                                    : AppColors.textSecondary,
+                              ),
+                              const SizedBox(width: 5),
+                              Text(
+                                state.isLocked ? 'Locked' : 'Unlocked',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: state.isLocked
+                                      ? AppColors.gold
+                                      : AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
                       // Reorder toggle (only when unlocked)
                       if (!state.isLocked) ...[
+                        const SizedBox(width: 8),
                         const Text(
                           'Reorder',
                           style: TextStyle(
@@ -172,7 +221,7 @@ class _EventDetailViewState extends State<EventDetailView> {
                             fontWeight: FontWeight.w500,
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 4),
                         Switch(
                           value: _isReorderMode,
                           onChanged: (value) {

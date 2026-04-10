@@ -8,9 +8,9 @@ abstract final class AppColors {
   static const bgElevated = Color(0xFF1F2D44);
 
   // === Accent colours ===
-  static const gold = Color(0xFFF0A500);       // primary amber-gold
-  static const goldLight = Color(0xFFFFCB47);
-  static const goldDim = Color(0xFF7A5200);
+  static const gold = Color(0xFF6366F1);       // primary indigo
+  static const goldLight = Color(0xFF818CF8);
+  static const goldDim = Color(0xFF312E81);
 
   static const sky = Color(0xFF38BDF8);         // online / info
   static const skyDim = Color(0xFF0A3855);
@@ -26,16 +26,16 @@ abstract final class AppColors {
   static const textSecondary = Color(0xFF8A9BB0);
   static const textMuted = Color(0xFF4E5F74);
 
-  // === Text on gold (dark brown – used for button labels on gold backgrounds) ===
-  static const onGold = Color(0xFF150900);
+  // === Text on primary (white – used for button labels on indigo backgrounds) ===
+  static const onGold = Color(0xFFFFFFFF);
 
   // === Borders ===
   static const border = Color(0xFF1E2F45);
-  static const borderFocused = Color(0xFFF0A500);
+  static const borderFocused = Color(0xFF6366F1);
 
   // === Grand total card gradient stops ===
-  static const grandTotalGradientStart = Color(0xFF2A1900);
-  static const grandTotalGradientEnd = Color(0xFF1A1200);
+  static const grandTotalGradientStart = Color(0xFF1E1B4B);
+  static const grandTotalGradientEnd = Color(0xFF13103A);
 
   // === Misc ===
   static const white = Color(0xFFFFFFFF);
