@@ -70,7 +70,7 @@ class _EventDetailViewState extends State<EventDetailView> {
             SnackBar(
               content: Row(
                 children: [
-                  const Icon(Icons.warning_amber_rounded, color: AppColors.gold, size: 18),
+                  const Icon(Icons.sync_problem_rounded, color: AppColors.sky, size: 18),
                   const SizedBox(width: 10),
                   Expanded(child: Text(state.message)),
                 ],

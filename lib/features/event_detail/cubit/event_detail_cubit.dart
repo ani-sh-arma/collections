@@ -327,13 +327,22 @@ class EventDetailCubit extends Cubit<EventDetailState> {
       // for the same (rowId, columnId) are always serialized, preventing the
       // duplicate-insert race that can occur when two writes hit the DB before
       // the first one's getCell() round-trip completes.
+      //
+      // whenComplete (rather than then) is intentional: we always want to
+      // attempt the next write even if the previous one failed. _persistCell
+      // catches all exceptions internally and emits EventDetailSaveFailed, so
+      // this chain never propagates an unhandled error.
       final prevFuture = _cellPersistFutures[persistKey] ?? Future.value();
       final nextFuture = prevFuture
           .whenComplete(() => _persistCell(cell, affectsTotals: affectsTotals));
       _cellPersistFutures[persistKey] = nextFuture;
+      // Self-cleanup: use identical() to compare the future by reference so
+      // that a newer write's entry is never accidentally removed. This is safe
+      // in Dart's single-threaded event-loop model — at most one whenComplete
+      // callback runs at a time, and the map is always updated synchronously
+      // before any callback can observe it.
       nextFuture.whenComplete(() {
-        // Only clean up if no newer write has replaced this entry.
-        if (_cellPersistFutures[persistKey] == nextFuture) {
+        if (identical(_cellPersistFutures[persistKey], nextFuture)) {
           _cellPersistFutures.remove(persistKey);
         }
       });
