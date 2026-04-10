@@ -416,7 +416,7 @@ class EventDetailCubit extends Cubit<EventDetailState> {
     final affectsTotals = column != null &&
         (column.key == AppConstants.amountColumnKey ||
             column.key == AppConstants.onlineColumnKey);
-    if (!affectsTotals) return; // Only bother for totals-affecting columns
+    if (!affectsTotals) return; // Only update totals-affecting columns
 
     // Build a lookup map once so both the id-preservation step and the
     // updatedCells construction below are O(1) per cell instead of O(n).
