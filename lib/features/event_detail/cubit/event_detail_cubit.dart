@@ -325,10 +325,14 @@ class EventDetailCubit extends Cubit<EventDetailState> {
       // Use the latest in-memory value for this cell, not the snapshot we
       // captured when the timer was scheduled, to avoid stale writes.
       final latestLoaded = _lastLoaded;
-      final latestCell = latestLoaded?.cells.firstWhere(
-        (c) => c.rowId == cell.rowId && c.columnId == cell.columnId,
-        orElse: () => cell,
-      ) ?? cell;
+      Cell latestCell = cell;
+      if (latestLoaded != null) {
+        final cellKey = '${cell.rowId}_${cell.columnId}';
+        final cellByKey = <String, Cell>{
+          for (final c in latestLoaded.cells) '${c.rowId}_${c.columnId}': c,
+        };
+        latestCell = cellByKey[cellKey] ?? cell;
+      }
 
       final existingCell = await _repository.getCell(cell.rowId, cell.columnId);
       final Cell cellToSave;
@@ -414,12 +418,15 @@ class EventDetailCubit extends Cubit<EventDetailState> {
             column.key == AppConstants.onlineColumnKey);
     if (!affectsTotals) return; // Only bother for totals-affecting columns
 
+    // Build a lookup map once so both the id-preservation step and the
+    // updatedCells construction below are O(1) per cell instead of O(n).
+    final cellKey = '${cell.rowId}_${cell.columnId}';
+    final cellByKey = <String, Cell>{
+      for (final c in loadedState.cells) '${c.rowId}_${c.columnId}': c,
+    };
+
     // Preserve the existing in-memory cell's id (avoid UUID churn).
-    final existing = loadedState.cells.firstWhere(
-      (c) => c.rowId == cell.rowId && c.columnId == cell.columnId,
-      orElse: () => cell,
-    );
-    // Use the new cell's values but keep the existing id to avoid UUID churn.
+    final existing = cellByKey[cellKey] ?? cell;
     final previewCell = Cell(
       id: existing.id,
       rowId: cell.rowId,
