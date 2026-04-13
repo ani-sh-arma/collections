@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uuid/uuid.dart';
@@ -20,10 +21,29 @@ class EventDetailCubit extends Cubit<EventDetailState> {
   /// write can never overwrite the result of a faster later write.
   Future<void> _totalsPersistFuture = Future.value();
 
+  /// Per-cell debounce timers for background DB writes, keyed by 'rowId_columnId'.
+  /// In-memory state updates are always immediate; only the DB write is deferred.
+  final Map<String, Timer> _cellPersistTimers = {};
+
+  /// Per-cell Future chains, keyed by 'rowId_columnId'.
+  /// Ensures that concurrent DB writes for the same cell are serialized: a new
+  /// write always waits for the previous one to finish before it starts,
+  /// preventing duplicate-insert races on the Cells table.
+  final Map<String, Future<void>> _cellPersistFutures = {};
+
   EventDetailCubit({required EventRepository repository})
       : _repository = repository,
         super(const EventDetailInitial());
 
+  @override
+  Future<void> close() {
+    for (final timer in _cellPersistTimers.values) {
+      timer.cancel();
+    }
+    _cellPersistTimers.clear();
+    _cellPersistFutures.clear();
+    return super.close();
+  }
 
   /// Initial full load — shows a loading indicator and fetches all data.
   Future<void> loadEventDetail(String eventId) async {
@@ -86,16 +106,21 @@ class EventDetailCubit extends Cubit<EventDetailState> {
 
   Future<void> toggleEventLock() async {
     final currentState = state;
-    if (currentState is! EventDetailLoaded) return;
+    final loadedState = currentState is EventDetailLoaded
+        ? currentState
+        : _lastLoaded;
+    if (loadedState == null) return;
 
     try {
-      final updatedEvent = currentState.event.copyWith(
-        locked: !currentState.event.locked,
+      final updatedEvent = loadedState.event.copyWith(
+        locked: !loadedState.event.locked,
         updatedAt: DateTime.now(),
       );
 
       await _repository.updateEvent(updatedEvent);
-      emit(currentState.copyWith(event: updatedEvent));
+      final updatedLoaded = loadedState.copyWith(event: updatedEvent);
+      _lastLoaded = updatedLoaded;
+      emit(updatedLoaded);
     } catch (e) {
       emit(EventDetailError('Failed to toggle lock: ${e.toString()}'));
     }
@@ -258,70 +283,218 @@ class EventDetailCubit extends Cubit<EventDetailState> {
         : _lastLoaded;
     if (loadedState == null) return;
 
-    try {
-      final existingCell = await _repository.getCell(cell.rowId, cell.columnId);
+    // ── STEP 1 (IMMEDIATE): Optimistic in-memory update ─────────────────────
+    // Compute the updated cell list and totals right now so the UI reflects
+    // the new value without waiting for any DB round-trip.
+    final optimisticCells = [
+      for (final c in loadedState.cells)
+        if (c.rowId != cell.rowId || c.columnId != cell.columnId) c,
+      cell,
+    ];
 
+    final column = loadedState.getColumnById(cell.columnId);
+    final affectsTotals = column != null &&
+        (column.key == AppConstants.amountColumnKey ||
+            column.key == AppConstants.onlineColumnKey);
+
+    EventTotals? optimisticTotals = loadedState.totals;
+    if (affectsTotals) {
+      optimisticTotals = _computeTotalsFromCells(
+        optimisticCells,
+        loadedState.columns,
+        loadedState.event.id,
+      );
+    }
+
+    final optimisticLoaded = loadedState.copyWith(
+      cells: optimisticCells,
+      totals: optimisticTotals,
+    );
+    _lastLoaded = optimisticLoaded;
+    if (currentState is EventDetailLoaded) {
+      emit(optimisticLoaded);
+    }
+
+    // ── STEP 2 (DEBOUNCED): Persist to DB ───────────────────────────────────
+    // Cancel any pending write for this cell and schedule a fresh one.
+    final persistKey = '${cell.rowId}_${cell.columnId}';
+    _cellPersistTimers[persistKey]?.cancel();
+    _cellPersistTimers[persistKey] = Timer(AppConstants.autosaveDelay, () {
+      // Remove the completed timer entry immediately to prevent unbounded growth.
+      _cellPersistTimers.remove(persistKey);
+
+      // Chain onto any in-flight write for the same cell so concurrent persists
+      // for the same (rowId, columnId) are always serialized, preventing the
+      // duplicate-insert race that can occur when two writes hit the DB before
+      // the first one's getCell() round-trip completes.
+      //
+      // whenComplete (rather than then) is intentional: we always want to
+      // attempt the next write even if the previous one failed. _persistCell
+      // catches all exceptions internally and emits EventDetailSaveFailed, so
+      // this chain never propagates an unhandled error.
+      final prevFuture = _cellPersistFutures[persistKey] ?? Future.value();
+      final nextFuture = prevFuture
+          .whenComplete(() => _persistCell(cell, affectsTotals: affectsTotals));
+      _cellPersistFutures[persistKey] = nextFuture;
+      // Self-cleanup: use identical() to compare the future by reference so
+      // that a newer write's entry is never accidentally removed. This is safe
+      // in Dart's single-threaded event-loop model — at most one whenComplete
+      // callback runs at a time, and the map is always updated synchronously
+      // before any callback can observe it.
+      nextFuture.whenComplete(() {
+        if (identical(_cellPersistFutures[persistKey], nextFuture)) {
+          _cellPersistFutures.remove(persistKey);
+        }
+      });
+    });
+  }
+
+  /// Writes [cell] to the database after fetching/assigning the correct row ID.
+  /// Uses the most recent in-memory value from [_lastLoaded] so that rapid
+  /// successive edits are coalesced into a single write with the latest value.
+  Future<void> _persistCell(Cell cell, {required bool affectsTotals}) async {
+    try {
+      // Use the latest in-memory value for this cell, not the snapshot we
+      // captured when the timer was scheduled, to avoid stale writes.
+      final latestLoaded = _lastLoaded;
+      Cell latestCell = cell;
+      if (latestLoaded != null) {
+        final cellKey = '${cell.rowId}_${cell.columnId}';
+        final cellByKey = <String, Cell>{
+          for (final c in latestLoaded.cells) '${c.rowId}_${c.columnId}': c,
+        };
+        latestCell = cellByKey[cellKey] ?? cell;
+      }
+
+      final existingCell = await _repository.getCell(cell.rowId, cell.columnId);
       final Cell cellToSave;
       if (existingCell != null) {
-        // Preserve the existing ID so the UPDATE query matches the DB row.
         cellToSave = Cell(
           id: existingCell.id,
-          rowId: cell.rowId,
-          columnId: cell.columnId,
-          valueText: cell.valueText,
-          valueNumber: cell.valueNumber,
-          valueBool: cell.valueBool,
+          rowId: latestCell.rowId,
+          columnId: latestCell.columnId,
+          valueText: latestCell.valueText,
+          valueNumber: latestCell.valueNumber,
+          valueBool: latestCell.valueBool,
         );
         await _repository.updateCell(cellToSave);
       } else {
-        cellToSave = cell;
+        cellToSave = latestCell;
         await _repository.createCell(cellToSave);
       }
 
-      // Replace the existing cell (if any) and append the new value in one pass.
-      final updatedCells = [
-        for (final c in loadedState.cells)
-          if (c.rowId != cellToSave.rowId || c.columnId != cellToSave.columnId) c,
-        cellToSave,
-      ];
-
-      // Check if this cell affects totals
-      final column = loadedState.getColumnById(cell.columnId);
-      final affectsTotals = column != null &&
-          (column.key == AppConstants.amountColumnKey ||
-              column.key == AppConstants.onlineColumnKey);
-
-      // Compute new totals from in-memory cells immediately (no DB roundtrip).
-      // This makes the totals table update at the same moment as the cell save.
-      EventTotals? updatedTotals = loadedState.totals;
-      if (affectsTotals) {
-        updatedTotals = _computeTotalsFromCells(
-          updatedCells,
-          loadedState.columns,
-          loadedState.event.id,
-        );
-        // Persist totals to DB in the background.  Writes are chained so an
-        // older slow write can never overwrite the result of a newer one.
-        final totalsToSave = updatedTotals;
-        _totalsPersistFuture = _totalsPersistFuture.whenComplete(
-          () => _repository
-              .updateEventTotals(totalsToSave)
-              .catchError((Object e) => log('Background totals persist failed: $e')),
-        );
+      // Sync the DB-assigned id back into _lastLoaded so future DB operations
+      // use the correct primary key (avoids duplicate-insert bugs).
+      final loaded = _lastLoaded;
+      if (loaded != null) {
+        final fixedCells = [
+          for (final c in loaded.cells)
+            if (c.rowId != cellToSave.rowId || c.columnId != cellToSave.columnId) c,
+          cellToSave,
+        ];
+        _lastLoaded = loaded.copyWith(cells: fixedCells);
       }
 
-      final updatedLoaded = loadedState.copyWith(
-        cells: updatedCells,
-        totals: updatedTotals,
-      );
-      _lastLoaded = updatedLoaded;
-      // Only emit if we're not in the middle of a structural save.
-      if (currentState is EventDetailLoaded) {
-        emit(updatedLoaded);
+      // Persist totals in background if this cell affected them.
+      if (affectsTotals) {
+        final currentTotals = _lastLoaded?.totals;
+        if (currentTotals != null) {
+          final totalsToSave = currentTotals;
+          _totalsPersistFuture = _totalsPersistFuture.whenComplete(
+            () => _repository
+                .updateEventTotals(totalsToSave)
+                .catchError((Object e) => log('Background totals persist failed: $e')),
+          );
+        }
       }
     } catch (e) {
-      emit(EventDetailError('Failed to update cell: ${e.toString()}'));
+      log('Failed to persist cell: $e');
+      // Emit a non-disruptive notification so the user knows the background
+      // save failed.  The optimistic in-memory state is preserved so the UI
+      // remains consistent; the BlocBuilder ignores this state (via buildWhen)
+      // and the BlocListener shows it as a transient SnackBar.
+      if (!isClosed) {
+        emit(EventDetailSaveFailed(
+          'Auto-save failed. Please check your connection and try again.',
+        ));
+      }
     }
+  }
+
+  /// Immediately updates the in-memory state for a number cell without a DB
+  /// write. Use this on every [onChanged] keystroke for instant totals preview;
+  /// the actual DB write is handled by the debounced [updateCellNumber].
+  void previewCellNumber({
+    required String rowId,
+    required String columnId,
+    required double value,
+  }) {
+    _applyPreview(
+      Cell(rowId: rowId, columnId: columnId).withNumberValue(value),
+    );
+  }
+
+  /// Immediately updates the in-memory state for a boolean cell without a DB
+  /// write. Use this for instant totals preview when toggling online/offline.
+  void previewCellBool({
+    required String rowId,
+    required String columnId,
+    required bool value,
+  }) {
+    _applyPreview(
+      Cell(rowId: rowId, columnId: columnId).withBoolValue(value),
+    );
+  }
+
+  /// Core logic for [previewCellNumber] / [previewCellBool].
+  void _applyPreview(Cell cell) {
+    final loadedState = state is EventDetailLoaded
+        ? state as EventDetailLoaded
+        : _lastLoaded;
+    if (loadedState == null) return;
+
+    final column = loadedState.getColumnById(cell.columnId);
+    final affectsTotals = column != null &&
+        (column.key == AppConstants.amountColumnKey ||
+            column.key == AppConstants.onlineColumnKey);
+    if (!affectsTotals) return; // Only update totals-affecting columns
+
+    // Build a lookup map once so both the id-preservation step and the
+    // updatedCells construction below are O(1) per cell instead of O(n).
+    final cellKey = '${cell.rowId}_${cell.columnId}';
+    final cellByKey = <String, Cell>{
+      for (final c in loadedState.cells) '${c.rowId}_${c.columnId}': c,
+    };
+
+    // Preserve the existing in-memory cell's id (avoid UUID churn).
+    final existing = cellByKey[cellKey] ?? cell;
+    final previewCell = Cell(
+      id: existing.id,
+      rowId: cell.rowId,
+      columnId: cell.columnId,
+      valueText: cell.valueText,
+      valueNumber: cell.valueNumber,
+      valueBool: cell.valueBool,
+    );
+
+    final updatedCells = [
+      for (final c in loadedState.cells)
+        if (c.rowId != cell.rowId || c.columnId != cell.columnId) c,
+      previewCell,
+    ];
+
+    final updatedTotals = _computeTotalsFromCells(
+      updatedCells,
+      loadedState.columns,
+      loadedState.event.id,
+    );
+
+    final updatedLoaded = loadedState.copyWith(
+      cells: updatedCells,
+      totals: updatedTotals,
+    );
+    _lastLoaded = updatedLoaded;
+    if (state is EventDetailLoaded) emit(updatedLoaded);
   }
 
   Future<void> updateCellText({

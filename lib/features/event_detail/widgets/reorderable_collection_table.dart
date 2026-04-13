@@ -456,8 +456,15 @@ class _ReorderableCollectionTableState
       ),
       textAlign: TextAlign.right,
       onChanged: (value) {
+        // Immediately update in-memory state so totals reflect every keystroke.
+        final numValue = double.tryParse(value) ?? 0.0;
+        context.read<EventDetailCubit>().previewCellNumber(
+          rowId: row.id,
+          columnId: column.id,
+          value: numValue,
+        );
+        // Debounced DB write via updateCellNumber.
         _debouncers[key]?.call(() {
-          final numValue = double.tryParse(value) ?? 0.0;
           context.read<EventDetailCubit>().updateCellNumber(
             rowId: row.id,
             columnId: column.id,
@@ -484,6 +491,12 @@ class _ReorderableCollectionTableState
         onChanged: widget.isLocked
             ? null
             : (value) {
+                // Immediate in-memory preview so totals update instantly.
+                context.read<EventDetailCubit>().previewCellBool(
+                  rowId: row.id,
+                  columnId: column.id,
+                  value: value ?? false,
+                );
                 context.read<EventDetailCubit>().updateCellBool(
                   rowId: row.id,
                   columnId: column.id,

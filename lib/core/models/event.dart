@@ -21,9 +21,9 @@ class Event {
     required this.gradientColorB,
     DateTime? createdAt,
     DateTime? updatedAt,
-  })  : id = id ?? const Uuid().v4(),
-        createdAt = createdAt ?? DateTime.now(),
-        updatedAt = updatedAt ?? DateTime.now();
+  }) : id = id ?? const Uuid().v4(),
+       createdAt = createdAt ?? DateTime.now(),
+       updatedAt = updatedAt ?? DateTime.now();
 
   Event copyWith({
     String? id,
@@ -80,11 +80,30 @@ class Event {
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
-    return other is Event && other.id == id;
+    return other is Event &&
+        other.id == id &&
+        other.title == title &&
+        other.description == description &&
+        other.date == date &&
+        other.locked == locked &&
+        other.gradientColorA == gradientColorA &&
+        other.gradientColorB == gradientColorB &&
+        other.createdAt == createdAt &&
+        other.updatedAt == updatedAt;
   }
 
   @override
-  int get hashCode => id.hashCode;
+  int get hashCode => Object.hash(
+    id,
+    title,
+    description,
+    date,
+    locked,
+    gradientColorA,
+    gradientColorB,
+    createdAt,
+    updatedAt,
+  );
 
   @override
   String toString() {

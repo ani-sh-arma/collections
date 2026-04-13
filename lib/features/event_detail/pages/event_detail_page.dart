@@ -54,14 +54,42 @@ class _EventDetailViewState extends State<EventDetailView> {
             SnackBar(
               content: Row(
                 children: [
-                  const Icon(Icons.error_outline_rounded, color: AppColors.rose, size: 18),
+                  const Icon(
+                    Icons.error_outline_rounded,
+                    color: AppColors.rose,
+                    size: 18,
+                  ),
                   const SizedBox(width: 10),
                   Expanded(child: Text(state.message)),
                 ],
               ),
               backgroundColor: AppColors.bgCard,
               behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              margin: const EdgeInsets.all(16),
+            ),
+          );
+        } else if (state is EventDetailSaveFailed) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(
+                    Icons.sync_problem_rounded,
+                    color: AppColors.sky,
+                    size: 18,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(child: Text(state.message)),
+                ],
+              ),
+              backgroundColor: AppColors.bgCard,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               margin: const EdgeInsets.all(16),
             ),
           );
@@ -70,14 +98,20 @@ class _EventDetailViewState extends State<EventDetailView> {
             SnackBar(
               content: Row(
                 children: [
-                  const Icon(Icons.check_circle_outline_rounded, color: AppColors.emerald, size: 18),
+                  const Icon(
+                    Icons.check_circle_outline_rounded,
+                    color: AppColors.emerald,
+                    size: 18,
+                  ),
                   const SizedBox(width: 10),
                   Expanded(child: Text(state.message)),
                 ],
               ),
               backgroundColor: AppColors.bgCard,
               behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               margin: const EdgeInsets.all(16),
             ),
           );
@@ -86,6 +120,10 @@ class _EventDetailViewState extends State<EventDetailView> {
       child: BlocBuilder<EventDetailCubit, EventDetailState>(
         buildWhen: (previous, current) {
           if (current is EventDetailSaving) return false;
+          // Save-failure and operation-success are surfaced via the listener as
+          // transient SnackBars; the BlocBuilder must not rebuild for them so
+          // the table remains visible and the optimistic state is preserved.
+          if (current is EventDetailSaveFailed) return false;
           if (previous is EventDetailLoaded && current is EventDetailLoading) {
             return false;
           }
@@ -106,7 +144,9 @@ class _EventDetailViewState extends State<EventDetailView> {
           }
           return const Scaffold(
             backgroundColor: AppColors.bgDeep,
-            body: Center(child: CircularProgressIndicator(color: AppColors.gold)),
+            body: Center(
+              child: CircularProgressIndicator(color: AppColors.gold),
+            ),
           );
         },
       ),
@@ -126,75 +166,68 @@ class _EventDetailViewState extends State<EventDetailView> {
             child: RefreshIndicator(
               color: AppColors.gold,
               backgroundColor: AppColors.bgCard,
-              onRefresh: () =>
-                  context.read<EventDetailCubit>().refreshEventDetail(),
+              onRefresh:
+                  () => context.read<EventDetailCubit>().refreshEventDetail(),
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.fromLTRB(16, 20, 16, 120),
                 child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // ── Section header: Collection Data ──────────────────────
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'COLLECTION DATA',
-                              style: TextStyle(
-                                color: AppColors.textMuted,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 1.5,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // ── Section header: Collection Data ──────────────────────
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'COLLECTION DATA',
+                                style: TextStyle(
+                                  color: AppColors.textMuted,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 1.5,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              '${state.sortedRows.length} ${state.sortedRows.length == 1 ? 'entry' : 'entries'}',
-                              style: const TextStyle(
-                                color: AppColors.textSecondary,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      // Reorder toggle (only when unlocked)
-                      if (!state.isLocked) ...[
-                        const Text(
-                          'Reorder',
-                          style: TextStyle(
-                            color: AppColors.textSecondary,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
+                            ],
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        Switch(
-                          value: _isReorderMode,
-                          onChanged: (value) {
-                            setState(() => _isReorderMode = value);
-                          },
-                        ),
+
+                        // Reorder toggle (only when unlocked)
+                        if (!state.isLocked) ...[
+                          const SizedBox(width: 8),
+                          const Text(
+                            'Reorder',
+                            style: TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Switch(
+                            value: _isReorderMode,
+                            onChanged: (value) {
+                              setState(() => _isReorderMode = value);
+                            },
+                          ),
+                        ],
                       ],
-                    ],
-                  ),
+                    ),
 
-                  const SizedBox(height: 12),
+                    const SizedBox(height: 12),
 
-                  // ── Data table ───────────────────────────────────────────
-                  _isReorderMode && !state.isLocked
-                      ? ReorderableCollectionTable(
+                    // ── Data table ───────────────────────────────────────────
+                    _isReorderMode && !state.isLocked
+                        ? ReorderableCollectionTable(
                           event: state.event,
                           columns: state.sortedColumns,
                           rows: state.sortedRows,
                           cells: state.cells,
                           isLocked: state.isLocked,
                         )
-                      : CollectionTable(
+                        : CollectionTable(
                           event: state.event,
                           columns: state.sortedColumns,
                           rows: state.sortedRows,
@@ -202,43 +235,46 @@ class _EventDetailViewState extends State<EventDetailView> {
                           isLocked: state.isLocked,
                         ),
 
-                  const SizedBox(height: 28),
+                    const SizedBox(height: 28),
 
-                  // ── Section header: Summary ──────────────────────────────
-                  const Text(
-                    'COLLECTION SUMMARY',
-                    style: TextStyle(
-                      color: AppColors.textMuted,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1.5,
+                    // ── Section header: Summary ──────────────────────────────
+                    const Text(
+                      'COLLECTION SUMMARY',
+                      style: TextStyle(
+                        color: AppColors.textMuted,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.5,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
+                    const SizedBox(height: 12),
 
-                  // ── Totals table ─────────────────────────────────────────
-                  TotalsTable(totals: state.totals),
-                ],
+                    // ── Totals table ─────────────────────────────────────────
+                    TotalsTable(totals: state.totals),
+                  ],
+                ),
               ),
             ),
           ),
-        ),
         ],
       ),
-      floatingActionButton: state.isLocked
-          ? null
-          : FloatingActionButton.extended(
-              onPressed: () => _showAddRowDialog(context),
-              backgroundColor: AppColors.gold,
-              foregroundColor: AppColors.onGold,
-              elevation: 4,
-              icon: const Icon(Icons.add_rounded, size: 20),
-              label: const Text(
-                'Add Row',
-                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+      floatingActionButton:
+          state.isLocked
+              ? null
+              : FloatingActionButton.extended(
+                onPressed: () => _showAddRowDialog(context),
+                backgroundColor: AppColors.gold,
+                foregroundColor: AppColors.onGold,
+                elevation: 4,
+                icon: const Icon(Icons.add_rounded, size: 20),
+                label: const Text(
+                  'Add Row',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
               ),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            ),
     );
   }
 
@@ -258,7 +294,11 @@ class _EventDetailViewState extends State<EventDetailView> {
                   color: AppColors.roseDim,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.error_outline_rounded, size: 40, color: AppColors.rose),
+                child: const Icon(
+                  Icons.error_outline_rounded,
+                  size: 40,
+                  color: AppColors.rose,
+                ),
               ),
               const SizedBox(height: 20),
               Text(
@@ -273,7 +313,9 @@ class _EventDetailViewState extends State<EventDetailView> {
               const SizedBox(height: 28),
               ElevatedButton.icon(
                 onPressed: () {
-                  context.read<EventDetailCubit>().loadEventDetail(widget.eventId);
+                  context.read<EventDetailCubit>().loadEventDetail(
+                    widget.eventId,
+                  );
                 },
                 icon: const Icon(Icons.refresh_rounded, size: 18),
                 label: const Text('Retry'),
@@ -288,10 +330,11 @@ class _EventDetailViewState extends State<EventDetailView> {
   void _showAddRowDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (dialogContext) => BlocProvider.value(
-        value: context.read<EventDetailCubit>(),
-        child: const AddRowDialog(),
-      ),
+      builder:
+          (dialogContext) => BlocProvider.value(
+            value: context.read<EventDetailCubit>(),
+            child: const AddRowDialog(),
+          ),
     );
   }
 }
