@@ -44,9 +44,7 @@ class EventInfoSection extends StatelessWidget {
         children: [
           // Background dot pattern for texture
           Positioned.fill(
-            child: CustomPaint(
-              painter: _SubtleGridPainter(textColor),
-            ),
+            child: CustomPaint(painter: _SubtleGridPainter(textColor)),
           ),
           SafeArea(
             bottom: false,
@@ -96,7 +94,9 @@ class EventInfoSection extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        DateFormat('EEEE, MMM dd, yyyy').format(displayEvent.date),
+                        DateFormat(
+                          'EEEE, MMM dd, yyyy',
+                        ).format(displayEvent.date),
                         style: TextStyle(
                           color: textColor.withValues(alpha: 0.9),
                           fontSize: 13,
@@ -219,32 +219,43 @@ class _LockButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () => context.read<EventDetailCubit>().toggleEventLock(),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: textColor.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: textColor.withValues(alpha: 0.25)),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              event.locked ? Icons.lock_rounded : Icons.lock_open_rounded,
-              color: textColor,
-              size: 14,
-            ),
-            const SizedBox(width: 5),
-            Text(
-              event.locked ? 'Locked' : 'Unlocked',
-              style: TextStyle(
-                color: textColor,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
+      child: BlocBuilder<EventDetailCubit, EventDetailState>(
+        builder: (context, state) {
+          if (state is EventDetailLoaded) {
+            final localEvent = state.event;
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: textColor.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: textColor.withValues(alpha: 0.25)),
               ),
-            ),
-          ],
-        ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    localEvent.locked
+                        ? Icons.lock_rounded
+                        : Icons.lock_open_rounded,
+                    color: textColor,
+                    size: 14,
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    localEvent.locked ? 'Locked' : 'Unlocked',
+                    style: TextStyle(
+                      color: textColor,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          return SizedBox.shrink();
+        },
       ),
     );
   }
@@ -256,9 +267,10 @@ class _SubtleGridPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color.withValues(alpha: 0.04)
-      ..style = PaintingStyle.fill;
+    final paint =
+        Paint()
+          ..color = color.withValues(alpha: 0.04)
+          ..style = PaintingStyle.fill;
     const spacing = 20.0;
     const r = 1.2;
     for (double x = 0; x < size.width; x += spacing) {
